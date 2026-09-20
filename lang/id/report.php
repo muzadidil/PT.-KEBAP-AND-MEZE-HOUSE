@@ -1,0 +1,80 @@
+<?php
+
+return [
+
+    'from' => 'Dari',
+    'to' => 'Sampai',
+    'month' => 'Bulan',
+    'year' => 'Tahun',
+    'apply' => 'Terapkan',
+    'period' => 'Periode',
+    'date' => 'Tanggal',
+    'week' => 'Minggu',
+    'days' => 'Hari',
+    'transactions' => 'Transaksi',
+    'total' => 'Total',
+    'average_per_day' => 'Rata-rata per hari',
+    'no_data' => 'Belum ada yang tercatat di periode ini.',
+    'print' => 'Cetak',
+    'export_csv' => 'Unduh CSV',
+    'grand_total' => 'Total keseluruhan',
+    'as_of' => 'Per tanggal',
+
+    'preset' => [
+        'this_month' => 'Bulan ini',
+        'last_month' => 'Bulan lalu',
+        'this_year' => 'Tahun ini',
+        'last_7' => '7 hari terakhir',
+        'last_30' => '30 hari terakhir',
+    ],
+
+    'summary' => [
+        'sales' => 'Penjualan',
+        'expenses' => 'Pengeluaran',
+        'profit' => 'Laba',
+    ],
+
+    'balance' => [
+        'assets' => 'Aset',
+        'cash_on_hand' => 'Kas di laci',
+        'bank' => 'Bank & hasil nontunai',
+        'total_assets' => 'Total aset',
+
+        'liabilities' => 'Kewajiban',
+        'supplier_payable' => 'Utang pemasok',
+        'tax_payable' => 'Utang pajak',
+        'other_payable' => 'Tagihan lain belum dibayar',
+        'total_liabilities' => 'Total kewajiban',
+
+        'equity' => 'Ekuitas',
+        'owner_capital' => 'Modal pemilik',
+        'retained_earnings' => 'Laba terkumpul',
+        'total_equity' => 'Total ekuitas',
+
+        'liabilities_and_equity' => 'Kewajiban + ekuitas',
+        'balanced' => 'Seimbang.',
+        'not_balanced' => 'Selisih :amount. Ini semestinya tidak pernah terjadi — mohon laporkan.',
+
+        'invested' => 'Disetor',
+        'withdrawn' => 'Ditarik',
+        'advanced' => 'Ditalangi sendiri',
+        'capital' => 'Modal',
+
+        'note' => 'Semua angka di sini dihitung ulang dari penjualan, pengeluaran, dan catatan modal setiap kali halaman ini dibuka. Tidak ada saldo yang disimpan terpisah.',
+    ],
+
+    'owner_split' => [
+        'title' => 'Pengeluaran Pemilik',
+        'intro' => 'Pengeluaran yang ditalangi pemilik dengan uang pribadi selama periode ini. Tiap pemilik menanggung porsi yang disepakati; yang membayar lebih dari porsinya berhak menerima selisihnya.',
+        'total_advanced' => 'Total ditalangi',
+        'paid' => 'Yang dibayar',
+        'share' => 'Porsinya',
+        'balance' => 'Selisih',
+        'receives' => 'menerima',
+        'owes' => 'menyetor',
+        'settled' => 'impas',
+        'share_warning' => 'Porsi pemilik berjumlah :total%, bukan 100%. Betulkan di Data Induk → Pemilik sebelum memakai hasil pembagian ini.',
+        'no_owners' => 'Belum ada pemilik aktif. Tambahkan di Data Induk → Pemilik.',
+    ],
+
+];
