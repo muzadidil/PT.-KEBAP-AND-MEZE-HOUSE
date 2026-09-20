@@ -48,15 +48,17 @@ class CashierPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                // Harus sebelum middleware autentikasi Filament: kalau akses
+                // ditolak, halaman 403 pun perlu tampil dalam bahasa penggunanya.
+                // Rute panel tidak melewati grup `web`, jadi tidak cukup
+                // mengandalkan pemasangan di bootstrap/app.php.
+                SetLocale::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                // Rute panel tidak melewati grup `web`, jadi bahasa dipasang di
-                // sini juga (lihat bootstrap/app.php untuk sisi Livewire-nya).
-                SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
