@@ -22,6 +22,7 @@ return [
     'suppliers' => 'Suppliers',
     'owners' => 'Owners',
     'users' => 'Users',
+    'appearance' => 'Appearance',
 
     'daily_sales' => 'Daily Sales',
     'weekly_sales' => 'Weekly Sales',

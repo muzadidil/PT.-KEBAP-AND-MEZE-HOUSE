@@ -29,12 +29,16 @@ class AppServiceProvider extends ServiceProvider
         | Cap waktu berkas dipakai sebagai penanda versi supaya perubahan
         | gaya tidak tertahan cache peramban.
         */
-        $stylesheet = public_path('css/pos.css');
-        $version = File::exists($stylesheet) ? File::lastModified($stylesheet) : 0;
-
         FilamentView::registerRenderHook(
             PanelsRenderHook::STYLES_AFTER,
-            fn (): string => '<link rel="stylesheet" href="'.asset('css/pos.css').'?v='.$version.'">',
+            fn (): string => collect(['css/pos.css', 'css/auth.css'])
+                ->map(function (string $path): string {
+                    $file = public_path($path);
+                    $version = File::exists($file) ? File::lastModified($file) : 0;
+
+                    return '<link rel="stylesheet" href="'.asset($path).'?v='.$version.'">';
+                })
+                ->implode(''),
         );
     }
 }

@@ -26,7 +26,29 @@ langsung mendarat di halaman transaksi tanpa satu klik pun lagi.
 
 **Panel kasir** — Kasir (POS), Rekap Harian, Transaksi Saya.
 **Panel admin** — Penjualan, Pengeluaran, Modal Pemilik, 10 laporan, dan
-data induk (menu, kategori, pemasok, pemilik, pengguna).
+data induk (menu, kategori, pemasok, pemilik, pengguna, tampilan).
+
+## Halaman masuk
+
+Berpanel dua: sisi kiri slideshow latar bergambar, sisi kanan kartu masuk.
+Di layar sempit sisi gambarnya disembunyikan — yang dicari orang di halaman
+itu adalah kolom isian, bukan foto.
+
+Logo, nama, tagline, dan daftar latarnya diatur pemilik lewat
+**Admin → Data Induk → Tampilan**, tanpa menyentuh kode. Kalau belum diatur,
+dipakai tiga latar bawaan di `public/img/login-*.svg`: gambar vektor
+buatan sendiri bertema panggangan arang, meja meze, dan teh Turki. Sengaja
+vektor, bukan foto stok — tidak ada urusan lisensi, tajam di layar seberapa
+pun, dan masing-masing hanya beberapa kilobita. Pemilik tinggal menggantinya
+dengan foto asli restoran lewat halaman Tampilan.
+
+Unggahannya mendarat di `public/uploads/branding`, **bukan** lewat
+`storage:link`: shared hosting sering menolak symlink, dan latar halaman
+masuk harus bisa dilihat orang yang belum masuk sama sekali.
+
+Logika autentikasinya sendiri tidak disentuh sedikit pun — yang diganti cuma
+tata letaknya lewat `$layout`, jadi pembaruan Filament tidak pernah bentrok
+dengan tampilan buatan sendiri di sini.
 
 ## Yang sudah jalan
 
@@ -168,11 +190,15 @@ rupiah yang hilang atau tercipta di pembulatan.
 ```
 app/Support/Ledger.php              sumber tunggal semua angka laporan
 app/Support/Money.php               format, pembacaan, dan pembagian rupiah
+app/Support/Branding.php            logo & latar halaman masuk
+app/Filament/Auth/Login.php         halaman masuk berpanel dua
 app/Filament/Cashier/Pages/         Kasir, Rekap Harian, Transaksi Saya
 app/Filament/Admin/Pages/Reports/   10 laporan
 app/Filament/Admin/Resources/       data induk + penjualan & pengeluaran
 app/Enums/                          channel, cara bayar, kategori, peran
 public/css/pos.css                  gaya buatan sendiri, tanpa langkah build
+public/css/auth.css                 gaya halaman masuk
+public/img/login-*.svg              tiga latar bawaan, gambar vektor sendiri
 lang/en, lang/id                    istilah domain (chrome Filament bawaan)
 tests/Feature/                      invarian laporan & neraca
 ```
@@ -183,7 +209,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**96 tes, 807 asersi, semuanya lolos** (diverifikasi 20 September 2026).
+**112 tes, 862 asersi, semuanya lolos** (diverifikasi 20 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -212,6 +238,8 @@ salah kalau rusak:
 - tiap halaman di kedua panel benar-benar terbuka, kasir tidak bisa masuk ke
   panel admin, dan akun nonaktif tidak bisa masuk ke mana pun
 - halaman baru yang belum ikut diuji akan menggagalkan `PanelAccessTest`
+- halaman masuk tidak pernah tampil kosong: belum diatur, semua slide
+  dihapus, atau berkas gambarnya hilang dari disk, semuanya jatuh ke bawaan
 
 ## Yang belum dikerjakan
 

@@ -35,6 +35,7 @@ class PanelAccessTest extends TestCase
             'suppliers' => ['filament.admin.resources.suppliers.index'],
             'owners' => ['filament.admin.resources.owners.index'],
             'users' => ['filament.admin.resources.users.index'],
+            'appearance' => ['filament.admin.pages.appearance'],
         ];
     }
 

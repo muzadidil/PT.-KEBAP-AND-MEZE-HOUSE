@@ -22,6 +22,7 @@ return [
     'suppliers' => 'Pemasok',
     'owners' => 'Pemilik',
     'users' => 'Pengguna',
+    'appearance' => 'Tampilan',
 
     'daily_sales' => 'Penjualan Harian',
     'weekly_sales' => 'Penjualan Mingguan',

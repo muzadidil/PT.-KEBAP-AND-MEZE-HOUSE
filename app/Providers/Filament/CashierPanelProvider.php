@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
 use App\Filament\Support\LanguageSwitcher;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
@@ -34,7 +35,7 @@ class CashierPanelProvider extends PanelProvider
             ->default()
             ->id('cashier')
             ->path('')
-            ->login()
+            ->login(Login::class)
             ->brandName(config('business.name'))
             ->colors([
                 'primary' => Color::Amber,

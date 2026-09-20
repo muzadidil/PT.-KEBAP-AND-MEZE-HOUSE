@@ -1,0 +1,363 @@
+/*
+ * Halaman masuk berpanel dua.
+ *
+ * Dipisah dari pos.css karena hanya dipakai satu halaman, dan halaman itu
+ * justru yang paling sering jadi kesan pertama. CSS biasa, ikut di-commit,
+ * tanpa langkah build — lihat alasannya di README.
+ *
+ * Panel kanan hanya menyediakan wadah; isinya formulir Filament apa adanya,
+ * jadi gaya di sini sengaja tidak menyentuh bagian dalam formulir supaya
+ * pembaruan Filament tidak pernah merusak tampilannya.
+ */
+
+.auth {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--pos-surface);
+}
+
+/* ---------- panel kiri: gambar ---------- */
+
+.auth__visual {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: #450a0a;
+}
+
+.auth__slides {
+    position: absolute;
+    inset: 0;
+}
+
+.auth__slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: opacity .8s ease, visibility .8s ease;
+}
+
+.auth__slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 1;
+}
+
+/* Lapisan gelap supaya teks putih tetap terbaca di atas gambar apa pun —
+   termasuk foto terang yang nanti diunggah pemilik. */
+.auth__slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(60, 8, 8, .52) 0%, rgba(69, 10, 10, .46) 42%, rgba(28, 4, 4, .9) 100%);
+    pointer-events: none;
+}
+
+.auth__slide-body {
+    position: absolute;
+    left: 3rem;
+    right: 3rem;
+    bottom: 6.5rem;
+    z-index: 2;
+    max-width: 34rem;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(1rem);
+    transition: opacity .7s ease .2s, transform .7s ease .2s;
+}
+
+.auth__slide.is-active .auth__slide-body {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.auth__slide-body h2 {
+    margin: 0 0 .875rem;
+    font-size: clamp(1.75rem, 2.9vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .3);
+}
+
+.auth__slide-body p {
+    margin: 0;
+    max-width: 30rem;
+    font-size: .875rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, .88);
+}
+
+.auth__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 1.125rem;
+    padding: .4375rem .875rem;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+    backdrop-filter: blur(8px);
+    font-size: .6875rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.auth__eyebrow i {
+    width: .4375rem;
+    height: .4375rem;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, .25);
+}
+
+/* ---------- merek ---------- */
+
+.auth__brand {
+    position: absolute;
+    top: 2rem;
+    left: 2.25rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    color: #fff;
+}
+
+.auth__logo {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: .875rem;
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .28);
+    backdrop-filter: blur(8px);
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.auth__logo--img {
+    object-fit: contain;
+    padding: .25rem;
+    background: rgba(255, 255, 255, .92);
+    border-color: rgba(255, 255, 255, .5);
+}
+
+.auth__brand-text {
+    display: grid;
+    gap: .125rem;
+    line-height: 1.25;
+}
+
+.auth__brand-text strong {
+    font-size: .9375rem;
+    font-weight: 700;
+}
+
+.auth__brand-text span {
+    font-size: .75rem;
+    opacity: .8;
+}
+
+/* ---------- kendali slide ---------- */
+
+.auth__controls {
+    position: absolute;
+    left: 3rem;
+    right: 3rem;
+    bottom: 2.25rem;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.auth__dots {
+    display: flex;
+    align-items: center;
+    gap: .4375rem;
+}
+
+.auth__dot {
+    width: .5rem;
+    height: .5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .38);
+    cursor: pointer;
+    transition: width .25s ease, background .25s ease;
+}
+
+.auth__dot.is-active {
+    width: 1.5rem;
+    background: #fff;
+}
+
+.auth__arrows {
+    display: flex;
+    gap: .5rem;
+}
+
+.auth__arrow {
+    display: grid;
+    place-items: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    border: 1px solid rgba(255, 255, 255, .32);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .14);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .18s ease;
+}
+
+.auth__arrow:hover {
+    background: rgba(255, 255, 255, .28);
+}
+
+.auth__progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 7;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, .16);
+}
+
+.auth__progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #fff, #fcd34d);
+}
+
+.auth__progress span.is-running {
+    animation: auth-progress 6s linear forwards;
+}
+
+@keyframes auth-progress {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+/* ---------- panel kanan: formulir ---------- */
+
+.auth__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 2rem;
+    overflow-y: auto;
+    background: var(--pos-surface);
+}
+
+.auth__card {
+    width: 100%;
+    max-width: 23rem;
+}
+
+.auth__brand--mobile {
+    position: static;
+    margin-bottom: 1.75rem;
+    color: var(--pos-text);
+}
+
+.auth__brand--mobile .auth__logo {
+    background: var(--pos-accent);
+    border-color: transparent;
+    color: var(--pos-accent-contrast);
+}
+
+.auth__brand--mobile .auth__logo--img {
+    background: var(--pos-surface-sunken);
+    border-color: var(--pos-border);
+}
+
+.auth__brand--mobile .auth__brand-text span {
+    color: var(--pos-text-muted);
+    opacity: 1;
+}
+
+/* Filament memusatkan kartu halaman sederhana dan memberinya lebar sendiri;
+   di dalam panel ini yang mengatur lebar sudah .auth__card. */
+.auth__panel .fi-simple-main,
+.auth__panel .fi-simple-page,
+.auth__panel .fi-main {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+}
+
+/* Merek sudah ditampilkan layout ini — di pojok kiri atas panel gambar, dan
+   di atas kartu saat layar sempit. Logo bawaan Filament di dalam kartu cuma
+   mengulanginya. */
+.auth__panel .fi-logo {
+    display: none;
+}
+
+/* Judul disejajarkan kiri mengikuti kolom isian di bawahnya; rata tengah
+   hanya masuk akal pada kartu yang berdiri sendiri di tengah layar. */
+.auth__panel .fi-simple-header {
+    align-items: flex-start;
+    text-align: start;
+}
+
+.auth__panel .fi-simple-header-heading {
+    font-size: 1.5rem;
+    line-height: 1.25;
+}
+
+/* ---------- layar sempit ---------- */
+
+@media (max-width: 1024px) {
+    .auth {
+        grid-template-columns: 1fr;
+    }
+
+    /* Di ponsel, gambar besar hanya menggeser formulir ke bawah layar.
+       Yang dicari orang di halaman ini adalah kolom isian. */
+    .auth__visual {
+        display: none;
+    }
+
+    .auth__panel {
+        padding: 1.5rem 1.25rem;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+}
+
+@media (min-width: 1025px) {
+    .auth__brand--mobile {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth__slide,
+    .auth__slide-body {
+        transition: none;
+    }
+
+    .auth__progress span.is-running {
+        animation: none;
+    }
+}

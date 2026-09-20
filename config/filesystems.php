@@ -30,6 +30,23 @@ return [
 
     'disks' => [
 
+        /*
+        | Logo dan latar halaman masuk.
+        |
+        | Ditulis langsung ke dalam public/, bukan ke storage/ lalu
+        | di-symlink: shared hosting sering menolak symlink, dan halaman
+        | masuk harus bisa menampilkan gambarnya kepada orang yang belum
+        | masuk sama sekali. Isinya memang dimaksudkan publik.
+        */
+        'branding' => [
+            'driver' => 'local',
+            'root' => public_path('uploads/branding'),
+            'url' => '/uploads/branding',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
