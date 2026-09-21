@@ -57,6 +57,20 @@ class ForbiddenPageTest extends TestCase
             ->assertSee(route('filament.admin.pages.dashboard'));
     }
 
+    public function test_admin_yang_membuka_pengaturan_tidak_disebut_bukan_administrator(): void
+    {
+        // Pesan lama berbunyi "khusus administrator" — keliru begitu yang
+        // ditolak adalah Admin yang membuka bagian milik Super Admin.
+        $admin = $this->admin(['name' => 'Sari', 'locale' => 'id']);
+
+        $this->actingAs($admin)
+            ->get(route('filament.admin.resources.users.index'))
+            ->assertForbidden()
+            ->assertSee('Sari')
+            ->assertSee(__('error.forbidden.wrong_account', ['name' => 'Sari', 'role' => 'Administrator'], 'id'))
+            ->assertSee(route('filament.admin.pages.dashboard'));
+    }
+
     public function test_halaman_403_tidak_membuat_galat_baru_saat_tanpa_pengguna(): void
     {
         // Tanpa pengguna yang masuk, halaman tidak boleh mencoba membaca nama

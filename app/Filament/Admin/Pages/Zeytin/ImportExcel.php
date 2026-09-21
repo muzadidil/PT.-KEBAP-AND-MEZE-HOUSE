@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Zeytin;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Support\Zeytin\Workbook\Importer;
 use App\Support\Zeytin\Workbook\TemplateBuilder;
 use BackedEnum;
@@ -36,6 +37,8 @@ use UnitEnum;
  */
 class ImportExcel extends Page
 {
+    use ForAdmin;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 
     protected static ?int $navigationSort = 90;

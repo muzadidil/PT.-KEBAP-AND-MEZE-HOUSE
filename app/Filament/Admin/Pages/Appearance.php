@@ -2,14 +2,15 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Models\Setting;
 use App\Support\Branding;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -33,6 +34,8 @@ use UnitEnum;
  */
 class Appearance extends Page
 {
+    use ForSuperAdmin;
+
     protected static ?int $navigationSort = 60;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPhoto;

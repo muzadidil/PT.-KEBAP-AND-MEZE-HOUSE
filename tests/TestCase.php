@@ -15,6 +15,11 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    protected function superAdmin(array $attributes = []): User
+    {
+        return $this->makeUser(UserRole::SuperAdmin, $attributes);
+    }
+
     protected function admin(array $attributes = []): User
     {
         return $this->makeUser(UserRole::Admin, $attributes);

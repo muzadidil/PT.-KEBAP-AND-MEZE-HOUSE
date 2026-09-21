@@ -144,6 +144,19 @@ return [
         'recorded_days' => 'Hari tercatat',
     ],
 
+    'pdf' => [
+        'download' => 'Unduh PDF',
+        'summary' => 'Ringkasan',
+        'breakdown' => 'Rincian',
+        'generated' => 'Dibuat',
+        'page' => 'Halaman',
+        'title' => [
+            'daily' => 'Laporan Harian',
+            'monthly' => 'Laporan Bulanan',
+            'yearly' => 'Laporan Tahunan',
+        ],
+    ],
+
     'ledger' => [
         'daily' => 'Harian',
         'monthly' => 'Bulanan',

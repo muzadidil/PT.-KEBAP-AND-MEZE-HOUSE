@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Suppliers;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
 use App\Models\Supplier;
 use App\Support\Money;
@@ -10,8 +11,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -29,6 +30,8 @@ use UnitEnum;
  */
 class SupplierResource extends Resource
 {
+    use ForSuperAdmin;
+
     protected static ?string $model = Supplier::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;

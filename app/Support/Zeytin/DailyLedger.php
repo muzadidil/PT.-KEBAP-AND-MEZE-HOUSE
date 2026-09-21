@@ -7,6 +7,7 @@ use App\Models\OutstandingBill;
 use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\SupplierTransfer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -120,9 +121,8 @@ class DailyLedger
             ->get()
             ->keyBy(fn (DailyIncome $row) => $row->date->toDateString());
 
-        $spent = Purchase::query()
+        $spent = static::purchases($from, $to)
             ->selectRaw('date, SUM(total) as amount')
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->groupBy('date')
             ->pluck('amount', 'date')
             ->mapWithKeys(fn ($amount, $date) => [Carbon::parse($date)->toDateString() => (int) $amount]);
@@ -163,30 +163,9 @@ class DailyLedger
         $lastRecorded = $rows->last(fn (array $row) => $row['total_sales'] > 0 || $row['expense'] > 0);
         $totals['remaining_supplier_cash'] = $lastRecorded['remaining_supplier_cash'] ?? 0;
 
-        $transfers = (int) SupplierTransfer::query()
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-            ->sum('total');
-
-        // Gaji disimpan per bulan, jadi batas rentangnya dipotong ke awal
-        // bulan: rentang 5–20 September tetap memuat payroll September, yang
-        // memang dibayarkan sekali untuk bulan itu, bukan per tanggal.
-        $payroll = (int) Payroll::query()
-            ->whereBetween('month', [
-                $from->copy()->startOfMonth()->toDateString(),
-                $to->copy()->startOfMonth()->toDateString(),
-            ])
-            ->sum('grand_total');
-
-        /*
-         * Tagihan yang belum beres TIDAK dibatasi rentang: yang belum lunas
-         * dari bulan lalu tetap kewajiban hari ini. Membatasinya ke rentang
-         * yang sedang dilihat akan membuat utang lama menghilang dari layar
-         * hanya karena orangnya membuka bulan yang lain.
-         */
-        $outstanding = OutstandingBill::query()
-            ->get()
-            ->reject(fn (OutstandingBill $bill) => static::isSettled($bill->status))
-            ->sum('total');
+        $transfers = (int) static::transfers($from, $to)->sum('total');
+        $payroll = (int) static::payroll($from, $to)->sum('grand_total');
+        $outstanding = static::unsettledBills()->sum('total');
 
         $totalExpenses = $totals['expense'] + $transfers + $payroll;
 
@@ -234,6 +213,59 @@ class DailyLedger
              */
             'global_balance' => $totals['total_sales'] - $totalExpenses - (int) $outstanding,
         ];
+    }
+
+    /* ------------------------------------------------ baris yang dihitung */
+
+    /*
+     * Baris mana yang masuk hitungan satu rentang ditentukan di sini saja.
+     * periodReport() menjumlahkannya, unduhan Excel mencantumkannya satu per
+     * satu; karena keduanya memanggil yang sama, tiap angka di ringkasan
+     * selalu bisa ditelusuri ke baris-baris yang membentuknya.
+     */
+
+    /** @return Builder<Purchase> */
+    public static function purchases(Carbon $from, Carbon $to): Builder
+    {
+        return Purchase::query()->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
+    }
+
+    /** @return Builder<SupplierTransfer> */
+    public static function transfers(Carbon $from, Carbon $to): Builder
+    {
+        return SupplierTransfer::query()->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
+    }
+
+    /**
+     * Gaji disimpan per bulan, jadi batas rentangnya dipotong ke awal bulan:
+     * rentang 5–20 September tetap memuat payroll September, yang memang
+     * dibayarkan sekali untuk bulan itu, bukan per tanggal.
+     *
+     * @return Builder<Payroll>
+     */
+    public static function payroll(Carbon $from, Carbon $to): Builder
+    {
+        return Payroll::query()->whereBetween('month', [
+            $from->copy()->startOfMonth()->toDateString(),
+            $to->copy()->startOfMonth()->toDateString(),
+        ]);
+    }
+
+    /**
+     * Tagihan yang belum beres TIDAK dibatasi rentang: yang belum lunas dari
+     * bulan lalu tetap kewajiban hari ini. Membatasinya ke rentang yang
+     * sedang dilihat akan membuat utang lama menghilang dari layar hanya
+     * karena orangnya membuka bulan yang lain.
+     *
+     * @return Collection<int, OutstandingBill>
+     */
+    public static function unsettledBills(): Collection
+    {
+        return OutstandingBill::query()
+            ->orderBy('date')
+            ->get()
+            ->reject(fn (OutstandingBill $bill) => static::isSettled($bill->status))
+            ->values();
     }
 
     /**

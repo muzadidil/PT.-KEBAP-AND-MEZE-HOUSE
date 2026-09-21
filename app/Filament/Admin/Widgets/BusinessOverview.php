@@ -19,6 +19,12 @@ class BusinessOverview extends StatsOverviewWidget
 {
     protected static ?int $sort = -10;
 
+    /** Angka penjualan kasir; bagian dari laporan, jadi milik Admin. */
+    public static function canView(): bool
+    {
+        return auth()->user()?->isAdmin() === true;
+    }
+
     protected function getStats(): array
     {
         $today = Carbon::today();

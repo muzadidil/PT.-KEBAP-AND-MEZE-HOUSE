@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\CapitalEntries;
 
 use App\Enums\CapitalDirection;
 use App\Enums\PaymentMethod;
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\CapitalEntries\Pages\ManageCapitalEntries;
 use App\Models\CapitalEntry;
 use App\Support\Money;
@@ -14,8 +15,8 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -35,6 +36,8 @@ use UnitEnum;
  */
 class CapitalEntryResource extends Resource
 {
+    use ForAdmin;
+
     protected static ?string $model = CapitalEntry::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWallet;

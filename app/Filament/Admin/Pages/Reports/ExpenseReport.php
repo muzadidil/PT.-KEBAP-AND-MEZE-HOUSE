@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Models\Expense;
 use App\Support\Money;
 use BackedEnum;
@@ -28,6 +29,7 @@ use UnitEnum;
  */
 abstract class ExpenseReport extends Page implements HasTable
 {
+    use ForAdmin;
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

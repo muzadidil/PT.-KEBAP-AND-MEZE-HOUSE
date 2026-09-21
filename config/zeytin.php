@@ -42,4 +42,18 @@ return [
     */
     'supplier_cash_opening' => (int) env('ZEYTIN_SUPPLIER_CASH_OPENING', 456560),
 
+    /*
+    | Kop laporan PDF — laporan yang dikirim ke pemilik, pembacanya orang
+    | luar negeri. Diambil dari aplikasi Zeytin sebelumnya.
+    */
+    'letterhead' => [
+        'name' => env('ZEYTIN_NAME', 'ZEYTiN'),
+        'legal_name' => env('ZEYTIN_LEGAL_NAME', 'PT. Kebap and Meze House'),
+        'address' => env('ZEYTIN_ADDRESS', 'Koloni Bali, Jl. Raya Semat No.1, Canggu, Badung, Bali 80361'),
+
+        // Jam "dibuat" di kaki laporan ditulis dalam waktu setempat (WITA),
+        // bukan UTC tempat aplikasinya menyimpan waktu.
+        'timezone' => env('ZEYTIN_TIMEZONE', 'Asia/Makassar'),
+    ],
+
 ];

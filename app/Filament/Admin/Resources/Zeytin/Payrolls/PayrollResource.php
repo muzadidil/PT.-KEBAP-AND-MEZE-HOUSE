@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\Payrolls;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\Payrolls\Pages\ManagePayrolls;
 use App\Models\Payroll;
@@ -20,6 +21,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Carbon;
+use UnitEnum;
 
 /**
  * Gaji per orang per bulan — sheet Payroll.
@@ -32,12 +34,23 @@ use Illuminate\Support\Carbon;
 class PayrollResource extends Resource
 {
     use BookkeepingResource;
+    use ForSuperAdmin;
 
     protected static ?string $model = Payroll::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     protected static ?int $navigationSort = 40;
+
+    /**
+     * Gaji per orang hanya untuk Super Admin; Admin cukup melihat totalnya
+     * di Buku Besar Bulanan. Karena itu halamannya di grup Penggajian,
+     * bersama karyawan dan slip gaji, bukan di Pembukuan Bulanan.
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return __('payroll.nav.group');
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -54,7 +67,7 @@ class PayrollResource extends Resource
         return __('zeytin.nav.payroll');
     }
 
-    protected static function sections(): array
+    public static function sections(): array
     {
         return [
             'Front Staff' => __('zeytin.section.front'),

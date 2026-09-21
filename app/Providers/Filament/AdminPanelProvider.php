@@ -22,8 +22,15 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
- * Backoffice pemilik: seluruh laporan dan seluruh data induk.
- * Kasir tidak bisa masuk ke sini; lihat User::canAccessPanel().
+ * Backoffice, dipakai dua peran dengan menu yang berbeda:
+ *
+ *   Super Admin  Data Induk — pengguna, menu, pemasok, tampilan — dan
+ *                Penggajian — karyawan, komponen gaji, slip gaji
+ *   Admin        Pengeluaran, Pembukuan Bulanan, dan Laporan
+ *
+ * Tidak ada menu Penjualan di sini: penjualan dipegang kasir di panelnya
+ * sendiri, dan angkanya sampai ke Admin lewat laporan. Kasir tidak bisa masuk
+ * ke sini; lihat User::canAccessPanel() dan App\Filament\Admin\Concerns.
  */
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,7 +46,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                NavigationGroup::make()->label(fn () => __('nav.group.sales')),
                 NavigationGroup::make()->label(fn () => __('nav.group.expenses')),
                 NavigationGroup::make()->label(fn () => __('nav.group.reports')),
                 // Pembukuan bulanan gaya berkas Excel klien. Grupnya sendiri,
@@ -47,6 +53,8 @@ class AdminPanelProvider extends PanelProvider
                 // tangan per bulan, bukan turunan dari transaksi kasir.
                 NavigationGroup::make()->label(fn () => __('zeytin.nav.group')),
                 NavigationGroup::make()->label(fn () => __('nav.group.master')),
+                // Karyawan, komponen gaji, slip gaji — Super Admin saja.
+                NavigationGroup::make()->label(fn () => __('payroll.nav.group')),
             ])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')

@@ -3,6 +3,7 @@
 return [
 
     'role' => [
+        'super_admin' => 'Super Admin',
         'admin' => 'Administrator',
         'cashier' => 'Kasir',
     ],

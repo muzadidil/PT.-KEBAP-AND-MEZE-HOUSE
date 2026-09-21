@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Support\Ledger;
 use App\Support\Money;
 use BackedEnum;
@@ -23,6 +24,8 @@ use UnitEnum;
  */
 class BalanceSheet extends Page
 {
+    use ForAdmin;
+
     protected static ?int $navigationSort = 100;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;

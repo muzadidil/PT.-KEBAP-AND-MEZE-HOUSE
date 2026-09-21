@@ -3,7 +3,6 @@
 return [
 
     'group' => [
-        'sales' => 'Sales',
         'expenses' => 'Expenses',
         'reports' => 'Reports',
         'master' => 'Master Data',
@@ -13,7 +12,6 @@ return [
     'daily_entry' => 'Daily Entry',
     'my_sales' => 'My Sales',
 
-    'sales' => 'Sales',
     'expenses' => 'Expenses',
     'capital' => 'Owner Capital',
 

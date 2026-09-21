@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\Purchases;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\Pages\ManagePurchases;
 use App\Models\Purchase;
@@ -28,6 +29,7 @@ use Filament\Tables\Table;
 class PurchaseResource extends Resource
 {
     use BookkeepingResource;
+    use ForAdmin;
 
     protected static ?string $model = Purchase::class;
 

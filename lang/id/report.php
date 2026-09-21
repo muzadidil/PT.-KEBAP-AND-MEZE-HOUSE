@@ -21,6 +21,8 @@ return [
     'as_of' => 'Per tanggal',
 
     'preset' => [
+        'today' => 'Hari ini',
+        'last_year' => 'Tahun lalu',
         'this_month' => 'Bulan ini',
         'last_month' => 'Bulan lalu',
         'this_year' => 'Tahun ini',

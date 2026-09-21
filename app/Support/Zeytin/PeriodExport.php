@@ -2,7 +2,10 @@
 
 namespace App\Support\Zeytin;
 
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -25,6 +28,8 @@ class PeriodExport
      */
     protected const MONEY_FORMAT = '#,##0;-#,##0';
 
+    protected const MONEY_COLUMNS = ['price', 'disc', 'tax', 'total', 'basic', 'bpjs', 'grand_total'];
+
     /** @param  array<string, mixed>  $report  hasil DailyLedger::periodReport() */
     public function __construct(protected array $report) {}
 
@@ -37,6 +42,7 @@ class PeriodExport
         $this->dailySheet($book);
         $this->rollUpSheet($book, __('zeytin.export.monthly'), DailyLedger::groupByMonth($this->report['rows']));
         $this->rollUpSheet($book, __('zeytin.export.yearly'), DailyLedger::groupByYear($this->report['rows']));
+        $this->recordSheets($book);
 
         $book->setActiveSheetIndex(0);
 
@@ -155,6 +161,99 @@ class PeriodExport
         }
 
         $this->write($sheet, $header, $lines, moneyFrom: 'C');
+    }
+
+    /**
+     * Catatan mentah di balik ringkasan, satu sheet per jenis.
+     *
+     * Barisnya diambil lewat DailyLedger, jalur yang sama dengan yang
+     * dijumlahkan ringkasan, jadi baris "Total" tiap sheet sama dengan angka
+     * di sheet Ringkasan. Penerima berkas bisa menelusuri tiap angka ke
+     * belanja, transfer, gaji, atau tagihan yang membentuknya.
+     */
+    protected function recordSheets(Spreadsheet $book): void
+    {
+        $from = $this->report['from'];
+        $to = $this->report['to'];
+
+        $this->recordSheet($book, __('zeytin.nav.purchases'),
+            DailyLedger::purchases($from, $to)->orderBy('date')->orderBy('id')->get(),
+            ['date', 'vendor', 'item', 'qty', 'unit', 'price', 'disc', 'tax', 'total']);
+
+        $this->recordSheet($book, __('zeytin.nav.transfers'),
+            DailyLedger::transfers($from, $to)->orderBy('date')->orderBy('id')->get(),
+            ['date', 'vendor', 'item', 'qty', 'unit', 'price', 'total', 'method', 'status']);
+
+        // Gaji hanya totalnya per bulan, bukan per orang: unduhan ini milik
+        // Admin, dan gaji per orang hanya boleh dilihat Super Admin.
+        $this->recordSheet($book, __('zeytin.nav.payroll'),
+            DailyLedger::payroll($from, $to)
+                ->selectRaw('month, SUM(grand_total) as grand_total')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get(),
+            ['month', 'grand_total']);
+
+        $this->recordSheet($book, __('zeytin.nav.outstanding'),
+            DailyLedger::unsettledBills(),
+            ['date', 'due_date', 'vendor', 'item', 'qty', 'unit', 'price', 'disc', 'tax', 'total', 'status']);
+    }
+
+    /**
+     * @param  Collection<int, Model>  $records
+     * @param  array<int, string>  $columns  nama kolom tabel; kolom uang terakhir dijumlahkan di baris Total
+     */
+    protected function recordSheet(Spreadsheet $book, string $title, Collection $records, array $columns): void
+    {
+        $sheet = $book->createSheet();
+        $sheet->setTitle($title);
+
+        $lines = $records->map(fn (Model $record) => array_map(
+            fn (string $column) => static::cell($column, $record->getAttribute($column)),
+            $columns,
+        ))->all();
+
+        $money = array_values(array_intersect($columns, static::MONEY_COLUMNS));
+        $totalColumn = end($money);
+
+        $footer = array_map(fn (string $column) => match ($column) {
+            $columns[0] => __('report.grand_total'),
+            $totalColumn => (int) $records->sum($totalColumn),
+            default => null,
+        }, $columns);
+
+        $sheet->fromArray([
+            array_map(fn (string $column) => __('zeytin.field.'.$column), $columns),
+            ...$lines,
+            $footer,
+        ], null, 'A1');
+
+        $last = $sheet->getHighestColumn();
+        $footerRow = count($lines) + 2;
+
+        $sheet->getStyle('A1:'.$last.'1')->getFont()->setBold(true);
+        $sheet->getStyle('A'.$footerRow.':'.$last.$footerRow)->getFont()->setBold(true);
+        $sheet->freezePane('A2');
+
+        foreach ($money as $column) {
+            $letter = Coordinate::stringFromColumnIndex(array_search($column, $columns, true) + 1);
+
+            $sheet->getStyle($letter.'2:'.$letter.$footerRow)
+                ->getNumberFormat()
+                ->setFormatCode(static::MONEY_FORMAT);
+        }
+
+        static::autoSize($sheet);
+    }
+
+    /** Tanggal ditulis sebagai teks tanggal, bulan gaji sebagai tahun-bulan. */
+    protected static function cell(string $column, mixed $value): mixed
+    {
+        if ($value instanceof CarbonInterface) {
+            return $column === 'month' ? $value->format('Y-m') : $value->toDateString();
+        }
+
+        return $value;
     }
 
     /**

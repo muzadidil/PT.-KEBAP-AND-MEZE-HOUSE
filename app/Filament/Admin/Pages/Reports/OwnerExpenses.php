@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Models\Expense;
 use App\Models\Owner;
 use App\Support\Ledger;
@@ -29,6 +30,8 @@ use UnitEnum;
  */
 class OwnerExpenses extends Page
 {
+    use ForAdmin;
+
     protected static ?int $navigationSort = 90;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;

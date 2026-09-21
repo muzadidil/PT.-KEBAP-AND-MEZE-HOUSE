@@ -152,6 +152,19 @@ return [
         'recorded_days' => 'Days recorded',
     ],
 
+    'pdf' => [
+        'download' => 'Download PDF',
+        'summary' => 'Summary',
+        'breakdown' => 'Breakdown',
+        'generated' => 'Generated',
+        'page' => 'Page',
+        'title' => [
+            'daily' => 'Daily Report',
+            'monthly' => 'Monthly Report',
+            'yearly' => 'Yearly Report',
+        ],
+    ],
+
     'ledger' => [
         'daily' => 'Daily',
         'monthly' => 'Monthly',

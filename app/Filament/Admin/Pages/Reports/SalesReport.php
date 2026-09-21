@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Support\Ledger;
 use App\Support\Money;
 use BackedEnum;
@@ -25,6 +26,8 @@ use UnitEnum;
  */
 abstract class SalesReport extends Page
 {
+    use ForAdmin;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected string $view = 'filament.admin.pages.reports.sales';

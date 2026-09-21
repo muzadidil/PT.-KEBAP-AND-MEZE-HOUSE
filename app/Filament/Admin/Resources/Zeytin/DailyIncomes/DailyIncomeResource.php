@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\DailyIncomes;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\DailyIncomes\Pages\ManageDailyIncomes;
 use App\Models\DailyIncome;
@@ -30,6 +31,7 @@ use Filament\Tables\Table;
 class DailyIncomeResource extends Resource
 {
     use BookkeepingResource;
+    use ForAdmin;
 
     protected static ?string $model = DailyIncome::class;
 

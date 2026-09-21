@@ -14,19 +14,28 @@ tidak ada satu pun alat build yang bisa jalan di sana.
 Dua bahasa: **Inggris (bawaan)** dan Indonesia. Pilihan bahasa menempel di
 akun, bukan di sesi.
 
-## Dua panel, dua peran
+## Tiga peran, dua panel
 
-| Alamat | Panel | Siapa |
+| Peran | Panel | Yang dipegang |
 |---|---|---|
-| `/` | Kasir | Kasir & admin |
-| `/admin` | Backoffice | Admin saja |
+| **Super Admin** | `/admin` | Mengatur: pengguna, menu, kategori, pemasok, barang belanja, cara bayar, pemilik, tampilan — dan **Penggajian**: karyawan, komponen gaji, slip gaji, gaji bulanan |
+| **Admin** | `/admin` | Laporan: Pengeluaran, Modal Pemilik, Pembukuan Bulanan, 10 laporan |
+| **Kasir** | `/` | Penjualan: Kasir (POS), Rekap Harian, Transaksi Saya |
+
+Ketiganya tidak saling tumpang tindih. Super Admin tidak melihat laporan,
+Admin tidak melihat pengaturan, dan **tidak ada menu Penjualan di panel
+admin** — penjualan dipegang kasir, dan angkanya sampai ke Admin lewat
+laporan. Admin juga tidak lagi membuka halaman kasir.
+
+Menu yang bukan milik perannya tidak tampil, dan alamatnya ditolak dengan
+halaman 403 yang menyebut siapa yang sedang masuk dan menunjuk ke halaman
+yang boleh dibukanya. Pembagiannya ditulis sekali per halaman lewat
+`App\Filament\Admin\Concerns\ForSuperAdmin` dan `ForAdmin`.
 
 Halaman kasir sengaja dipasang di **akar situs**, jadi membuka alamatnya
-langsung mendarat di halaman transaksi tanpa satu klik pun lagi.
-
-**Panel kasir** — Kasir (POS), Rekap Harian, Transaksi Saya.
-**Panel admin** — Penjualan, Pengeluaran, Modal Pemilik, 10 laporan, dan
-data induk (menu, kategori, pemasok, pemilik, pengguna, tampilan).
+langsung mendarat di halaman transaksi tanpa satu klik pun lagi. Siapa pun
+boleh masuk lewat halaman masuk mana saja; setelah masuk, tiap orang dibawa
+ke panelnya sendiri.
 
 ## Halaman masuk
 
@@ -35,7 +44,7 @@ Di layar sempit sisi gambarnya disembunyikan — yang dicari orang di halaman
 itu adalah kolom isian, bukan foto.
 
 Logo, nama, tagline, dan daftar latarnya diatur pemilik lewat
-**Admin → Data Induk → Tampilan**, tanpa menyentuh kode. Kalau belum diatur,
+**Super Admin → Data Induk → Tampilan**, tanpa menyentuh kode. Kalau belum diatur,
 dipakai tiga latar bawaan di `public/img/login-*.svg`: gambar vektor
 buatan sendiri bertema panggangan arang, meja meze, dan teh Turki. Sengaja
 vektor, bukan foto stok — tidak ada urusan lisensi, tajam di layar seberapa
@@ -46,9 +55,12 @@ Unggahannya mendarat di `public/uploads/branding`, **bukan** lewat
 `storage:link`: shared hosting sering menolak symlink, dan latar halaman
 masuk harus bisa dilihat orang yang belum masuk sama sekali.
 
-Logika autentikasinya sendiri tidak disentuh sedikit pun — yang diganti cuma
-tata letaknya lewat `$layout`, jadi pembaruan Filament tidak pernah bentrok
-dengan tampilan buatan sendiri di sini.
+Tata letaknya diganti lewat `$layout`, jadi pembaruan Filament tidak pernah
+bentrok dengan tampilan buatan sendiri di sini. Dari logika autentikasinya
+hanya satu hal yang diubah: akun diterima di halaman masuk panel mana pun,
+lalu `App\Http\Responses\LoginResponse` membawanya ke panelnya sendiri.
+Tanpa itu, admin yang mengetik alamat utama situs ditolak dengan pesan
+"kredensial tidak cocok" padahal kata sandinya benar.
 
 ## Yang sudah jalan
 
@@ -99,6 +111,7 @@ Akun bawaan seeder (**ganti sebelum dipakai sungguhan**):
 
 | Email | Kata sandi | Peran | Bahasa |
 |---|---|---|---|
+| superadmin@kebaphouse.test | password | Super Admin | Indonesia |
 | admin@kebaphouse.test | password | Administrator | Inggris |
 | kasir@kebaphouse.test | password | Kasir | Indonesia |
 
@@ -197,14 +210,36 @@ sel berkas aslinya, bukan dikarang ulang.
 
 | Halaman | Sheet asalnya |
 |---|---|
-| Buku Besar Bulanan | — (laporannya sendiri) |
+| Buku Besar Bulanan | — (laporannya sendiri, unduh Excel & PDF) |
 | Pemasukan Harian | `Income` |
 | Belanja Tunai | `Expense` |
 | Transfer Pemasok | `Supplier Transfer Payment` |
 | Gaji | `Payroll` |
 | Tagihan Belum Dibayar | `Outstanding INV` |
-| Barang Belanja · Cara Bayar | — (data induk) |
 | Impor Excel | keenamnya sekaligus |
+
+Semuanya milik **Admin**, kecuali **Gaji**: gaji per orang hanya boleh
+dilihat Super Admin, jadi halamannya ada di grup Penggajian, dan unduhan
+Excel buku besar hanya memuat total gaji per bulan. Admin tetap melihat
+total gajinya di buku besar dan dasbor. Data induknya — **Barang Belanja**
+dan **Cara Bayar** — ada di Data Induk milik **Super Admin**, bersama
+pemasok dan menu.
+
+Ini hasil memindahkan aplikasi laporan Zeytin (situs statis + Firestore di
+repo `Zeytin`) ke sini. Ketiga halamannya punya padanan:
+
+| Aplikasi Zeytin | Di sini |
+|---|---|
+| Dashboard | Dasbor Admin — kartu saldo global & angka bulan berjalan |
+| Handler (tab per sheet + impor) | menu Pembukuan Bulanan |
+| Reports (harian/bulanan/tahunan/kustom, PDF, Excel) | Buku Besar Bulanan |
+
+PDF-nya mengikuti bentuk PDF aplikasi Zeytin: kop berwarna, ringkasan, lalu
+rincian dengan baris total. Kop suratnya diatur di `config/zeytin.php`
+(`letterhead`), dan jam "dibuat" ditulis dalam WITA. Unduhan Excel memuat
+ringkasan, rincian harian/bulanan/tahunan, dan **catatan mentahnya** —
+belanja, transfer, gaji, tagihan — yang baris totalnya sama dengan angka di
+ringkasan.
 
 Tabelnya **terpisah dari `sales` dan `expenses`**, bukan dilebur. Alasannya
 bukan kerapian, tapi asal-usul: `sales` berisi transaksi per struk dari mesin
@@ -262,7 +297,9 @@ dibaca. Tagihan yang belum lunas **tidak dibatasi rentang**: utang bulan lalu
 tetap utang hari ini.
 
 Semuanya dihitung di satu tempat (`App\Support\Zeytin\DailyLedger`) dan
-dipakai buku besar, tabel harian/bulanan/tahunan, serta unduhan Excel.
+dipakai dasbor, buku besar, tabel harian/bulanan/tahunan, serta unduhan Excel
+dan PDF. Baris mana yang masuk hitungan juga ditentukan di sana, jadi sheet
+catatan mentah di Excel berisi persis baris yang dijumlahkan ringkasan.
 
 ### Mengimpor berkas Excel bulanan
 
@@ -322,6 +359,40 @@ diambil alih berkas Excel.
 Diuji dengan berkas Agustus klien yang sebenarnya: 230 baris belanja, dan
 mengimpornya berulang kali tetap 230.
 
+## Penggajian
+
+Menu **Penggajian** (Super Admin saja) meniru aplikasi Slip Gaji di repo
+`slip_gaji_cv_alfarisy`:
+
+| Halaman | Padanan di aplikasi Slip Gaji |
+|---|---|
+| Karyawan | tab Karyawan — nama, NIK, jabatan, gaji pokok, ditambah bagian (Front/Kitchen) |
+| Komponen Gaji | Item Pendapatan & Item Potongan — nominal bawaan dan tanda "fix" |
+| Slip Gaji | tab Buat Slip + Riwayat — pratinjau kertas slip berubah seiring isian, unduh PDF |
+| Slip Gaji → Kop & penandatangan | tab Pengaturan — nama, alamat, kota, penandatangan |
+
+Logo kop tidak diunggah terpisah: dipakai logo usaha dari **Data Induk →
+Tampilan**. PDF slipnya meniru bentuk aslinya — kop bergaris ganda,
+nomor `SG/2026/IX/001`, tabel Pendapatan | Potongan, Gaji Bersih, terbilang,
+dan tanda tangan — dan **selalu berbahasa Indonesia**, karena diserahkan
+ke karyawan. Pratinjau dan PDF merender satu templat yang sama
+(`resources/views/payslips/paper.blade.php`).
+
+Yang dibuat lebih ketat daripada aslinya, dan dijaga model, bukan cuma
+formulir:
+
+- **Nomor slip tidak pernah kembar.** Aslinya menghitung jumlah slip di
+  bulan itu, jadi menghapus satu slip membuat slip berikutnya memakai nomor
+  yang sudah ada. Di sini diambil dari nomor terbesar.
+- **Satu karyawan satu slip per bulan**, dijaga formulir dan indeks unik.
+- **Nominal item "fix" dikunci** juga saat menyimpan, bukan hanya di layar.
+- **Karyawan keluar dinonaktifkan, bukan dihapus**, dan nama, NIK, serta
+  jabatan disalin ke slip — mengubah data karyawan tidak mengubah slip lama.
+
+Slip gaji **belum** masuk ke buku besar; menyambungkannya ke Gaji bulanan
+dikerjakan belakangan, bersama keputusan soal gaji yang sekarang bisa
+tercatat di dua tempat (Pengeluaran kategori Gaji dan Gaji bulanan).
+
 ## Struktur
 
 ```
@@ -331,12 +402,23 @@ app/Support/Branding.php            logo & latar halaman masuk
 app/Filament/Auth/Login.php         halaman masuk berpanel dua
 app/Filament/Cashier/Pages/         Kasir, Rekap Harian, Transaksi Saya
 app/Filament/Admin/Pages/Reports/   10 laporan
-app/Filament/Admin/Resources/       data induk + penjualan & pengeluaran
+app/Filament/Admin/Resources/       data induk + pengeluaran
+app/Filament/Admin/Concerns/        pembagian menu: ForSuperAdmin, ForAdmin
+app/Filament/Admin/Widgets/         dasbor per peran
+app/Http/Responses/LoginResponse    tujuan setelah masuk mengikuti peran
 app/Enums/                          channel, cara bayar, kategori, peran
 
-config/zeytin.php                   channel pemasukan & saldo awal titipan
+config/zeytin.php                   channel, saldo awal titipan, kop PDF
 app/Support/Zeytin/DailyLedger.php  sumber tunggal angka pembukuan bulanan
+app/Support/Zeytin/PeriodExport.php unduhan Excel buku besar
+app/Support/Zeytin/PeriodPdf.php    unduhan PDF buku besar (dompdf)
+resources/views/pdf/                templat PDF
 app/Support/Zeytin/Workbook/        pembaca & template berkas Excel klien
+
+app/Filament/Admin/Resources/Employees, PayComponents, Payslips   penggajian
+app/Support/Payroll/                PDF slip & kop slip
+app/Support/Terbilang.php           angka rupiah dalam kata-kata
+resources/views/payslips/paper      kertas slip, dipakai pratinjau & PDF
 app/Filament/Admin/Pages/Zeytin/    buku besar bulanan + impor Excel
 app/Filament/Admin/Resources/Zeytin/  keenam sheet + dua data induknya
 
@@ -353,7 +435,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**169 tes, 1.009 asersi, semuanya lolos** (diverifikasi 21 September 2026).
+**240 tes, 1.168 asersi, semuanya lolos** (diverifikasi 21 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -379,9 +461,14 @@ salah kalau rusak:
 - selisih pembagian pemilik selalu berjumlah nol, termasuk pada nilai yang
   menyisakan rupiah ganjil
 - pengeluaran talangan selalu berstatus lunas, walau dipaksa sebaliknya
-- tiap halaman di kedua panel benar-benar terbuka, kasir tidak bisa masuk ke
-  panel admin, dan akun nonaktif tidak bisa masuk ke mana pun
-- halaman baru yang belum ikut diuji akan menggagalkan `PanelAccessTest`
+- tiap halaman benar-benar terbuka untuk perannya dan tertutup untuk dua
+  peran lainnya — menunya tidak tampil, alamatnya ditolak
+- kasir tidak bisa masuk ke panel admin, Admin dan Super Admin tidak bisa
+  masuk ke halaman kasir, dan akun nonaktif tidak bisa masuk ke mana pun
+- admin yang masuk di alamat utama dibawa ke backoffice, bukan ditolak;
+  alamat tujuan di panel lain diabaikan supaya tidak mendarat di 403
+- halaman baru yang belum diputuskan milik peran mana akan menggagalkan
+  `PanelAccessTest`
 - halaman masuk tidak pernah tampil kosong: belum diatur, semua slide
   dihapus, atau berkas gambarnya hilang dari disk, semuanya jatuh ke bawaan
 - tiap kunci bahasa Inggris punya terjemahan Indonesianya, dan sebaliknya
@@ -408,18 +495,27 @@ Dan untuk pembukuan bulanan:
 - template kosong yang diisi lalu diunggah terbaca utuh oleh pembacanya —
   jadi judul kolom yang berubah tanpa templatenya ikut berubah akan
   menggagalkan tes, bukan menggagalkan penggunanya
+- PDF memuat angka ringkasan yang sama dengan layar, dan laporan harian
+  membuang hari kosong tanpa mengubah totalnya
+- baris Total di tiap sheet catatan mentah Excel sama dengan angka di
+  ringkasan, dan tagihan yang sudah lunas tidak ikut; gaji hanya totalnya
+
+Dan untuk penggajian:
+
+- nomor slip berurut per bulan dan tidak kembar walau ada slip yang dihapus
+- item "fix" selalu bernominal bawaannya, apa pun yang diketik
+- data karyawan yang diubah belakangan tidak mengubah slip lama
+- slip kedua untuk karyawan dan bulan yang sama ditolak
+- terbilang benar untuk sebelas, seratus, seribu, juta, dan miliar
+- PDF slip berbahasa Indonesia walau aplikasinya berbahasa Inggris
 
 ## Yang belum dikerjakan
 
-- **Ekspor PDF.** Buku besar bulanan sudah bisa diunduh sebagai `.xlsx`
-  lewat PhpSpreadsheet, dan laporan penjualan sebagai CSV. PDF masih lewat
-  dialog cetak peramban. Menambah dompdf tidak butuh Node, jadi bisa
-  disusulkan tanpa mengubah rancangan.
 - **Sheet Payroll diimpor sebagian** — nama, gaji pokok, potongan BPJS, dan
   totalnya. Kolom jam kerja, lembur, dan sisa cuti belum ikut.
 - **Lampiran foto nota** pada pengeluaran. Tabelnya sudah punya kolom
   catatan, tapi belum ada unggahan berkas.
-- **Belum diuji di peramban sungguhan.** Seluruh 96 tes lolos dan tiap
+- **Belum diuji di peramban sungguhan.** Seluruh tes lolos dan tiap
   halaman terbukti mengembalikan HTTP 200 dengan aset yang tersaji benar,
   tapi tata letak halaman kasir di layar tablet meja kasir belum dilihat
   langsung. Jalankan `php artisan serve` dan buka `/` sebelum dipakai

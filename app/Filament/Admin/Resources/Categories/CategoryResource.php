@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Categories;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Categories\Pages\ManageCategories;
 use App\Models\Category;
 use BackedEnum;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 class CategoryResource extends Resource
 {
+    use ForSuperAdmin;
+
     protected static ?string $model = Category::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;

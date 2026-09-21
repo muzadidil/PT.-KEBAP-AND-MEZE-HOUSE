@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\PurchaseItems;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\PurchaseItems\Pages\ManagePurchaseItems;
 use App\Models\PurchaseItem;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use UnitEnum;
 
 /**
  * Barang yang biasa dibelanjakan, beserta harga terakhirnya.
@@ -31,12 +33,22 @@ use Filament\Tables\Table;
 class PurchaseItemResource extends Resource
 {
     use BookkeepingResource;
+    use ForSuperAdmin;
 
     protected static ?string $model = PurchaseItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
 
-    protected static ?int $navigationSort = 70;
+    protected static ?int $navigationSort = 33;
+
+    /**
+     * Data induk, bukan catatan harian: diatur Super Admin bersama pemasok
+     * dan menu, bukan diisi Admin bersama pembukuan.
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return __('nav.group.master');
+    }
 
     public static function getNavigationLabel(): string
     {

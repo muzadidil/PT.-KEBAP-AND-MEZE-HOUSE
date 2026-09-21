@@ -43,8 +43,20 @@ class DatabaseSeeder extends Seeder
         }
     }
 
+    /** Satu akun per peran; lihat App\Enums\UserRole. */
     protected function users(): void
     {
+        User::updateOrCreate(
+            ['email' => 'superadmin@kebaphouse.test'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+                'role' => UserRole::SuperAdmin,
+                'locale' => 'id',
+                'active' => true,
+            ],
+        );
+
         User::updateOrCreate(
             ['email' => 'admin@kebaphouse.test'],
             [

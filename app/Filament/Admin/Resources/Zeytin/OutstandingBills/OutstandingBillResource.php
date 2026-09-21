@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\OutstandingBills;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\OutstandingBills\Pages\ManageOutstandingBills;
 use App\Models\OutstandingBill;
@@ -30,6 +31,7 @@ use Filament\Tables\Table;
 class OutstandingBillResource extends Resource
 {
     use BookkeepingResource;
+    use ForAdmin;
 
     protected static ?string $model = OutstandingBill::class;
 

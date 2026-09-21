@@ -11,10 +11,10 @@
     galatnya terjadi sebelum panel sempat disiapkan.
 --}}
 @php
-    use App\Enums\UserRole;
-
     $user = auth()->user();
-    $isAdmin = $user?->isAdmin() ?? false;
+
+    // Super Admin dan Admin pulang ke backoffice, kasir ke halaman kasir.
+    $backoffice = $user?->role?->panel() === 'admin';
 @endphp
 
 <!DOCTYPE html>
@@ -121,8 +121,8 @@
         <div class="gate__actions">
             @if ($user)
                 {{-- Arahkan ke halaman yang memang boleh dibuka akun ini. --}}
-                <a class="gate__button" href="{{ $isAdmin ? route('filament.admin.pages.dashboard') : route('filament.cashier.pages.register') }}">
-                    {{ $isAdmin ? __('error.forbidden.admin') : __('error.forbidden.register') }}
+                <a class="gate__button" href="{{ $user->homeUrl() }}">
+                    {{ $backoffice ? __('error.forbidden.admin') : __('error.forbidden.register') }}
                 </a>
 
                 <form method="POST" action="{{ route('filament.cashier.auth.logout') }}">

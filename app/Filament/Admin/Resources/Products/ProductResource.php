@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Products;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Products\Pages\ManageProducts;
 use App\Models\Product;
 use BackedEnum;
@@ -31,6 +32,8 @@ use UnitEnum;
  */
 class ProductResource extends Resource
 {
+    use ForSuperAdmin;
+
     protected static ?string $model = Product::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Owners;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Owners\Pages\ManageOwners;
 use App\Models\Owner;
 use BackedEnum;
@@ -26,6 +27,8 @@ use UnitEnum;
  */
 class OwnerResource extends Resource
 {
+    use ForSuperAdmin;
+
     protected static ?string $model = Owner::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;

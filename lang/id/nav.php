@@ -3,7 +3,6 @@
 return [
 
     'group' => [
-        'sales' => 'Penjualan',
         'expenses' => 'Pengeluaran',
         'reports' => 'Laporan',
         'master' => 'Data Induk',
@@ -13,7 +12,6 @@ return [
     'daily_entry' => 'Rekap Harian',
     'my_sales' => 'Transaksi Saya',
 
-    'sales' => 'Penjualan',
     'expenses' => 'Pengeluaran',
     'capital' => 'Modal Pemilik',
 

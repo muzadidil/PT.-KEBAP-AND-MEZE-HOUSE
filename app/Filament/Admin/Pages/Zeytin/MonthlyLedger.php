@@ -2,10 +2,12 @@
 
 namespace App\Filament\Admin\Pages\Zeytin;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Support\Money;
 use App\Support\Zeytin\Channels;
 use App\Support\Zeytin\DailyLedger;
 use App\Support\Zeytin\PeriodExport;
+use App\Support\Zeytin\PeriodPdf;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -27,6 +29,8 @@ use UnitEnum;
  */
 class MonthlyLedger extends Page
 {
+    use ForAdmin;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
     protected static ?int $navigationSort = 1;
@@ -147,12 +151,17 @@ class MonthlyLedger extends Page
         $today = Carbon::today();
 
         [$from, $to] = match ($preset) {
+            'today' => [$today->copy(), $today->copy()],
             'this_month' => [$today->copy()->startOfMonth(), $today->copy()],
             'last_month' => [
                 $today->copy()->subMonthNoOverflow()->startOfMonth(),
                 $today->copy()->subMonthNoOverflow()->endOfMonth(),
             ],
             'this_year' => [$today->copy()->startOfYear(), $today->copy()],
+            'last_year' => [
+                $today->copy()->subYearNoOverflow()->startOfYear(),
+                $today->copy()->subYearNoOverflow()->endOfYear(),
+            ],
             'last_7' => [$today->copy()->subDays(6), $today->copy()],
             'last_30' => [$today->copy()->subDays(29), $today->copy()],
             default => [$this->fromDate(), $this->toDate()],
@@ -197,14 +206,26 @@ class MonthlyLedger extends Page
         ]);
     }
 
+    /**
+     * Laporan PDF untuk dikirim ke pemilik, dari laporan dan pengelompokan
+     * yang sedang tampil — sama seperti unduhan Excel di atas.
+     */
+    public function exportPdf(): StreamedResponse
+    {
+        $pdf = new PeriodPdf($this->report, $this->grouping);
+        $content = $pdf->render();
+
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, $pdf->filename(), [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
     /** Label kolom pertama, mengikuti pengelompokan yang dipilih. */
     public function periodLabel(array $row): string
     {
-        return match ($this->grouping) {
-            'monthly' => Carbon::parse($row['key'].'-01')->translatedFormat('F Y'),
-            'yearly' => $row['key'],
-            default => $row['date']->translatedFormat('D, d M Y'),
-        };
+        return PeriodPdf::label($row, $this->grouping);
     }
 
     public function money(?int $amount): string

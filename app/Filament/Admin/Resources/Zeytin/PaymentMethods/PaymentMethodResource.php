@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\PaymentMethods;
 
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\PaymentMethods\Pages\ManagePaymentMethods;
 use App\Models\PaymentMethodOption;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use UnitEnum;
 
 /**
  * Cara pembayaran ke pemasok, didaftar sekali lalu dipakai sebagai saran.
@@ -30,12 +32,19 @@ use Filament\Tables\Table;
 class PaymentMethodResource extends Resource
 {
     use BookkeepingResource;
+    use ForSuperAdmin;
 
     protected static ?string $model = PaymentMethodOption::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 36;
+
+    /** Data induk; lihat PurchaseItemResource::getNavigationGroup(). */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return __('nav.group.master');
+    }
 
     public static function getNavigationLabel(): string
     {

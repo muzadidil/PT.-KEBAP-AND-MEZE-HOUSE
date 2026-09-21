@@ -63,9 +63,9 @@ class BrandingTest extends TestCase
             ->assertSee('Cabang Kemang');
     }
 
-    public function test_admin_bisa_mengunggah_logo_dan_latar(): void
+    public function test_super_admin_bisa_mengunggah_logo_dan_latar(): void
     {
-        Livewire::actingAs($this->admin())
+        Livewire::actingAs($this->superAdmin())
             ->test(Appearance::class)
             ->fillForm([
                 'name' => 'Kebap House',
@@ -116,7 +116,7 @@ class BrandingTest extends TestCase
             ['image' => 'slides/satu.jpg', 'title' => 'Satu'],
         ]);
 
-        Livewire::actingAs($this->admin())
+        Livewire::actingAs($this->superAdmin())
             ->test(Appearance::class)
             ->fillForm(['slides' => []])
             ->call('save');
@@ -129,7 +129,7 @@ class BrandingTest extends TestCase
 
     public function test_slide_kosong_tidak_ikut_tersimpan(): void
     {
-        Livewire::actingAs($this->admin())
+        Livewire::actingAs($this->superAdmin())
             ->test(Appearance::class)
             ->fillForm([
                 'slides' => [
@@ -157,11 +157,20 @@ class BrandingTest extends TestCase
         $this->assertStringContainsString('login-kebab.svg', $slides[0]['image']);
     }
 
-    public function test_halaman_tampilan_hanya_untuk_admin(): void
+    /** Tampilan termasuk pengaturan, jadi milik Super Admin saja. */
+    public function test_halaman_tampilan_hanya_untuk_super_admin(): void
     {
-        $this->actingAs($this->admin())
+        $this->actingAs($this->superAdmin())
             ->get(route('filament.admin.pages.appearance'))
             ->assertOk();
+
+        // Ganti akun berarti sesi baru; tanpa ini, pengaman sesi Laravel
+        // mengeluarkan akun kedua sebelum hak aksesnya sempat diperiksa.
+        $this->flushSession();
+
+        $this->actingAs($this->admin())
+            ->get(route('filament.admin.pages.appearance'))
+            ->assertForbidden();
 
         $this->actingAs($this->cashier())
             ->get(route('filament.admin.pages.appearance'))

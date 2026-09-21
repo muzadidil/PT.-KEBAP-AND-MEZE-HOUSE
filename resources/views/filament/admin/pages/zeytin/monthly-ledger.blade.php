@@ -18,7 +18,7 @@
         </label>
 
         <div class="filters__presets">
-            @foreach (['last_7', 'last_30', 'this_month', 'last_month', 'this_year'] as $preset)
+            @foreach (['today', 'last_7', 'last_30', 'this_month', 'last_month', 'this_year', 'last_year'] as $preset)
                 <button type="button" class="pos__chip" wire:click="applyPreset('{{ $preset }}')">
                     {{ __('report.preset.'.$preset) }}
                 </button>
@@ -41,6 +41,10 @@
         <div class="filters__presets">
             <button type="button" class="pos__chip" wire:click="exportExcel">
                 {{ __('zeytin.export.download') }}
+            </button>
+
+            <button type="button" class="pos__chip" wire:click="exportPdf">
+                {{ __('zeytin.pdf.download') }}
             </button>
 
             <button type="button" class="pos__chip" onclick="window.print()">

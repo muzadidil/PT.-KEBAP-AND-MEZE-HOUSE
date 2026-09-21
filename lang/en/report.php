@@ -21,6 +21,8 @@ return [
     'as_of' => 'As of',
 
     'preset' => [
+        'today' => 'Today',
+        'last_year' => 'Last year',
         'this_month' => 'This month',
         'last_month' => 'Last month',
         'this_year' => 'This year',

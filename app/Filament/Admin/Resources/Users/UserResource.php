@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Users;
 
 use App\Enums\UserRole;
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Users\Pages\ManageUsers;
 use App\Models\User;
 use BackedEnum;
@@ -25,6 +26,8 @@ use UnitEnum;
 
 class UserResource extends Resource
 {
+    use ForSuperAdmin;
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;

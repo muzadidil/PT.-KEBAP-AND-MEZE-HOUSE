@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\SupplierTransfers;
 
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\SupplierTransfers\Pages\ManageSupplierTransfers;
 use App\Models\SupplierTransfer;
@@ -30,6 +31,7 @@ use Filament\Tables\Table;
 class SupplierTransferResource extends Resource
 {
     use BookkeepingResource;
+    use ForAdmin;
 
     protected static ?string $model = SupplierTransfer::class;
 

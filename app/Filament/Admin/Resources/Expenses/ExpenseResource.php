@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Expenses;
 
 use App\Enums\ExpenseCategory;
 use App\Enums\PaymentMethod;
+use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Expenses\Pages\ManageExpenses;
 use App\Models\Expense;
 use App\Support\Money;
@@ -14,8 +15,8 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -28,7 +29,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 /**
@@ -41,6 +41,8 @@ use UnitEnum;
  */
 class ExpenseResource extends Resource
 {
+    use ForAdmin;
+
     protected static ?string $model = Expense::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowTrendingDown;
