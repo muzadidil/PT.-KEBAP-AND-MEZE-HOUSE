@@ -685,3 +685,34 @@
         display: none !important;
     }
 }
+
+/* ---------- pembukuan bulanan ---------- */
+
+/*
+ * Keterangan sepanjang kalimat di bawah tabel atau formulir — bukan
+ * .report__empty, yang ditengahkan karena ia menggantikan seluruh isi tabel.
+ */
+.report__note {
+    color: var(--pos-text-muted);
+    font-size: .8125rem;
+    line-height: 1.6;
+    max-width: 68ch;
+}
+
+/*
+ * Penanda "excl." di sebelah petty cash. Angkanya memang sengaja tidak ikut
+ * Total Sales, dan tanpa penanda ini satu-satunya cara tahu adalah
+ * menjumlahkan sendiri kolomnya lalu bingung kenapa tidak cocok.
+ */
+.report__badge {
+    display: inline-block;
+    margin-left: .375rem;
+    padding: .0625rem .375rem;
+    border: 1px solid var(--pos-border);
+    border-radius: .3125rem;
+    color: var(--pos-text-muted);
+    font-size: .6875rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}

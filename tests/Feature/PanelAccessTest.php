@@ -36,6 +36,17 @@ class PanelAccessTest extends TestCase
             'owners' => ['filament.admin.resources.owners.index'],
             'users' => ['filament.admin.resources.users.index'],
             'appearance' => ['filament.admin.pages.appearance'],
+
+            // Pembukuan bulanan
+            'monthly ledger' => ['filament.admin.pages.monthly-ledger'],
+            'import excel' => ['filament.admin.pages.import-excel'],
+            'daily incomes' => ['filament.admin.resources.zeytin.daily-incomes.index'],
+            'purchases' => ['filament.admin.resources.zeytin.purchases.index'],
+            'supplier transfers' => ['filament.admin.resources.zeytin.supplier-transfers.index'],
+            'payrolls' => ['filament.admin.resources.zeytin.payrolls.index'],
+            'outstanding bills' => ['filament.admin.resources.zeytin.outstanding-bills.index'],
+            'purchase items' => ['filament.admin.resources.zeytin.purchase-items.index'],
+            'payment methods' => ['filament.admin.resources.zeytin.payment-methods.index'],
         ];
     }
 

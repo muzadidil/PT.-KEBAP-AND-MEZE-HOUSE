@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         $this->users();
         $this->menu();
         $this->suppliers();
+
+        // Data induk pembukuan bulanan; lihat ZeytinSeeder.
+        $this->call(ZeytinSeeder::class);
     }
 
     protected function owners(): void

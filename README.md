@@ -73,6 +73,10 @@ Seluruh 13 item di daftar tugas:
 Tambahan yang diperlukan supaya neraca bisa seimbang: **Modal Pemilik**
 (setoran & penarikan) dan penanda **belum dibayar** pada pengeluaran.
 
+Di atas itu ada **Pembukuan Bulanan**: pembukuan gaya berkas Excel bulanan
+klien, lengkap dengan pengimpor berkasnya. Berdiri sendiri di samping
+laporan kasir, tidak menggantikannya — [rinciannya di bawah](#pembukuan-bulanan).
+
 ## Menjalankan
 
 ```bash
@@ -185,6 +189,139 @@ terbesar, jadi jumlah tanggungan selalu **persis** sama dengan total yang
 ditalangi dan selisih seluruh pemilik selalu berjumlah **nol** — tidak ada
 rupiah yang hilang atau tercipta di pembulatan.
 
+## Pembukuan bulanan
+
+Menu **Pembukuan Bulanan** menggantikan berkas Excel bulanan klien, tanpa
+membuang konsep pelaporannya: definisi tiap kolom diambil dari rumus di dalam
+sel berkas aslinya, bukan dikarang ulang.
+
+| Halaman | Sheet asalnya |
+|---|---|
+| Buku Besar Bulanan | — (laporannya sendiri) |
+| Pemasukan Harian | `Income` |
+| Belanja Tunai | `Expense` |
+| Transfer Pemasok | `Supplier Transfer Payment` |
+| Gaji | `Payroll` |
+| Tagihan Belum Dibayar | `Outstanding INV` |
+| Barang Belanja · Cara Bayar | — (data induk) |
+| Impor Excel | keenamnya sekaligus |
+
+Tabelnya **terpisah dari `sales` dan `expenses`**, bukan dilebur. Alasannya
+bukan kerapian, tapi asal-usul: `sales` berisi transaksi per struk dari mesin
+kasir, sedangkan sheet Income berisi satu baris rekap per hari per channel
+yang ditulis tangan. Meleburnya berarti satu hari penjualan bisa terhitung
+dua kali — sekali dari struk, sekali dari rekap — dan tidak ada cara
+membedakannya setelah tercampur. Laporan kasir yang sudah ada tidak berubah
+sedikit pun.
+
+### Konsep yang dipertahankan dari berkas Excel
+
+Diambil dari rumus di dalam selnya, bukan ditebak dari angkanya:
+
+| Kolom | Rumus asli | Di aplikasi |
+|---|---|---|
+| Total Sales | `=SUM(D8:H8)` | cash + bni + grabFood + goFood + goPay |
+| Supplier Cash | `=456560+D8` | saldo awal (`config/zeytin.php`) + tunai |
+| Remaining Supplier Cash | `=J8-K8` | Supplier Cash − belanja hari itu |
+| Grand Income | `=I8-D8` | Total Sales − tunai (nontunai) |
+| Total baris belanja | `=((E*G)+I-H)` | (qty × price) + tax − disc |
+
+**Petty cash sengaja tidak ikut Total Sales**, karena rumus aslinya memang
+mulai dari kolom D dan melewati C. Perilaku itu dipertahankan, dan ditandai
+`excl.` di buku besar supaya tidak dikira hilang karena salah hitung.
+
+Pembagian tunai/nontunai mengikuti penanda `is_cash` di `config/zeytin.php`,
+bukan nama channel yang ditulis di dalam rumus. Menambah channel tunai baru
+karena itu cukup ditandai di konfigurasi.
+
+### Tiga hal yang sengaja diperbaiki, atas persetujuan klien
+
+1. **Grand Expense** di berkas aslinya menunjuk satu baris belanja
+   (`Expense!J80`), bukan totalnya. Di sini dijumlahkan penuh.
+2. **Transfer ke pemasok** tidak pernah ikut hitungan laba. Di sini ikut
+   sebagai pengeluaran.
+3. **Rentang belanja harian** di berkas aslinya diketik tangan
+   (`Expense!J5:J8`, `J9:J12`, …) sehingga ada baris yang terlewat. Di sini
+   pengelompokannya berdasarkan tanggal, jadi tidak ada yang bisa luput.
+
+### Saldo global
+
+```
+Saldo global = penjualan − (belanja tunai + transfer pemasok + gaji)
+             − tagihan yang belum dibayar
+```
+
+Sisa titipan belanja pemasok **sengaja tidak ikut ditambahkan**. Rumusnya
+`saldo awal + tunai − belanja`, jadi uang tunai di dalamnya sudah terhitung
+di Total Sales; menambahkannya membuat tunai dihitung dua kali. Angkanya
+tetap tampil sebagai kartu tersendiri, jadi tidak ada yang hilang dari layar.
+
+Sisa titipan adalah **keadaan hari terakhir yang tercatat**, bukan jumlah
+antar hari — menjumlahkan saldo tiap hari tidak menghasilkan angka yang bisa
+dibaca. Tagihan yang belum lunas **tidak dibatasi rentang**: utang bulan lalu
+tetap utang hari ini.
+
+Semuanya dihitung di satu tempat (`App\Support\Zeytin\DailyLedger`) dan
+dipakai buku besar, tabel harian/bulanan/tahunan, serta unduhan Excel.
+
+### Mengimpor berkas Excel bulanan
+
+**Pembukuan Bulanan → Impor Excel.** Pengimpornya tidak menganggap "baris 1
+header, sisanya data", karena berkas klien tidak begitu: tanggal hanya ada di
+baris pertama tiap kelompok, header muncul dua kali dengan nama kolom
+berbeda, dan tiap sheet mulai di baris berlainan.
+
+Ia mencari baris header berdasarkan nama kolom, mewarisi tanggal yang kosong,
+dan **melaporkan sheet yang bentuknya berubah** alih-alih menebak. Galat diam
+di pengimpor adalah cara tercepat merusak laporan tanpa ada yang sadar.
+
+Tanggalnya dua bentuk sekaligus: serial Excel dan teks ketikan tangan
+("31/08/2026"). Keduanya dibaca **hari dulu**, dan tanggal mustahil
+("31/13/2026") ditolak, bukan digeser ke bulan berikutnya.
+
+Tabel hasil impor menampilkan **rentang tanggal yang terbaca tiap sheet**.
+Itu bukan hiasan: salah ketik tahun di satu sel — di berkas Agustus ada satu
+baris tertulis `18/8/2028` — tidak mengubah jumlah baris dan tidak
+memunculkan galat apa pun. Yang berubah cuma ujung rentangnya.
+
+Bulan untuk sheet Payroll **ditanyakan, tidak ditebak** — judulnya di berkas
+asli berupa kalimat bebas yang tidak dijamin bentuknya.
+
+Berkas yang diunggah **tidak disimpan di server**: isinya nomor rekening
+pemasok dan gaji tiap karyawan, dan tidak ada gunanya menumpuk salinannya.
+Seluruh berkas masuk dalam satu transaksi, jadi tidak ada keadaan "separuh
+bulan terimpor" yang harus dibereskan tanpa tahu separuh mana.
+
+Tombol **Unduh template** membangun berkas contoh berisi keenam sheet dengan
+judul kolom yang benar — diturunkan dari daftar kolom yang sama dipakai
+pembacanya, bukan berkas contoh yang disimpan di repo. Berkas yang disimpan
+akan diam-diam ketinggalan zaman begitu satu kolom berubah, dan template yang
+judulnya meleset sedikit saja akan ditolak saat diunggah.
+
+### Mengimpor ulang berkas yang sama itu aman
+
+Tiap baris impor diberi nomor yang **diturunkan dari isinya**, bukan nomor
+acak. Akibatnya impor kedua atas berkas yang sama menimpa baris yang sama,
+tidak menambah baris baru.
+
+Kalau satu sel dibetulkan di Excel lalu berkasnya diimpor ulang, baris versi
+lamanya dibuang — bukan ditinggalkan berdampingan dengan yang baru. Yang
+dibuang hanya baris bertanda **Excel** dan hanya di dalam rentang tanggal
+berkas itu.
+
+**Apa yang diketik lewat halaman tidak pernah disentuh impor.** Tiap baris
+menampilkan penandanya di kolom "Diisi oleh", dan baris hasil impor yang Anda
+betulkan lewat halaman berubah jadi ketikan Anda — impor bulan depan tidak
+akan mengembalikannya ke angka yang salah.
+
+Pemasok dari sheet `Supplier Database` **tidak menggandakan** daftar pemasok
+yang sudah ada: nama yang sudah terdaftar hanya diisi kolom rekening dan cara
+bayarnya. Nama, narahubung, telepon, dan alamat yang sudah diketik tidak
+diambil alih berkas Excel.
+
+Diuji dengan berkas Agustus klien yang sebenarnya: 230 baris belanja, dan
+mengimpornya berulang kali tetap 230.
+
 ## Struktur
 
 ```
@@ -196,6 +333,13 @@ app/Filament/Cashier/Pages/         Kasir, Rekap Harian, Transaksi Saya
 app/Filament/Admin/Pages/Reports/   10 laporan
 app/Filament/Admin/Resources/       data induk + penjualan & pengeluaran
 app/Enums/                          channel, cara bayar, kategori, peran
+
+config/zeytin.php                   channel pemasukan & saldo awal titipan
+app/Support/Zeytin/DailyLedger.php  sumber tunggal angka pembukuan bulanan
+app/Support/Zeytin/Workbook/        pembaca & template berkas Excel klien
+app/Filament/Admin/Pages/Zeytin/    buku besar bulanan + impor Excel
+app/Filament/Admin/Resources/Zeytin/  keenam sheet + dua data induknya
+
 public/css/pos.css                  gaya buatan sendiri, tanpa langkah build
 public/css/auth.css                 gaya halaman masuk
 public/img/login-*.svg              tiga latar bawaan, gambar vektor sendiri
@@ -209,7 +353,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**112 tes, 862 asersi, semuanya lolos** (diverifikasi 20 September 2026).
+**169 tes, 1.009 asersi, semuanya lolos** (diverifikasi 21 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -240,13 +384,39 @@ salah kalau rusak:
 - halaman baru yang belum ikut diuji akan menggagalkan `PanelAccessTest`
 - halaman masuk tidak pernah tampil kosong: belum diatur, semua slide
   dihapus, atau berkas gambarnya hilang dari disk, semuanya jatuh ke bawaan
+- tiap kunci bahasa Inggris punya terjemahan Indonesianya, dan sebaliknya
+
+Dan untuk pembukuan bulanan:
+
+- Total Sales benar-benar melewati petty cash; tunai/nontunai ditentukan
+  penanda `is_cash`, bukan nama channel
+- sisa titipan adalah keadaan hari terakhir, bukan jumlah antar hari
+- saldo global tidak menghitung uang tunai dua kali
+- tagihan yang sudah lunas tidak dihitung sebagai utang, apa pun ejaan
+  statusnya ("PAID", "Sudah lunas", "settled")
+- rekap bulanan dan tahunan berjumlah sama dengan harian, per channel maupun
+  keseluruhan
+- serial tanggal Excel 46235 dibaca sebagai 1 Agustus 2026, "31/08/2026"
+  dibaca hari-dulu, dan "31/13/2026" ditolak — bukan digeser ke bulan
+  berikutnya
+- mengimpor berkas yang sama dua kali tidak menggandakan apa pun, sedangkan
+  dua baris yang benar-benar kembar dalam satu hari tetap dua baris
+- membetulkan satu sel lalu mengimpor ulang membuang baris versi lamanya
+- baris yang diketik orang tidak pernah disentuh impor
+- sheet yang hilang atau judul kolomnya tidak dikenali dilaporkan, bukan
+  ditebak posisi kolomnya
+- template kosong yang diisi lalu diunggah terbaca utuh oleh pembacanya —
+  jadi judul kolom yang berubah tanpa templatenya ikut berubah akan
+  menggagalkan tes, bukan menggagalkan penggunanya
 
 ## Yang belum dikerjakan
 
-- **Ekspor ke .xlsx dan PDF.** Sekarang baru ada unduhan CSV di laporan
-  penjualan dan tombol Cetak lewat dialog cetak peramban di semua laporan.
-  Menambah PhpSpreadsheet dan dompdf seperti di proyek BUM Desa tidak butuh
-  Node, jadi bisa disusulkan tanpa mengubah rancangan.
+- **Ekspor PDF.** Buku besar bulanan sudah bisa diunduh sebagai `.xlsx`
+  lewat PhpSpreadsheet, dan laporan penjualan sebagai CSV. PDF masih lewat
+  dialog cetak peramban. Menambah dompdf tidak butuh Node, jadi bisa
+  disusulkan tanpa mengubah rancangan.
+- **Sheet Payroll diimpor sebagian** — nama, gaji pokok, potongan BPJS, dan
+  totalnya. Kolom jam kerja, lembur, dan sisa cuti belum ikut.
 - **Lampiran foto nota** pada pengeluaran. Tabelnya sudah punya kolom
   catatan, tapi belum ada unggahan berkas.
 - **Belum diuji di peramban sungguhan.** Seluruh 96 tes lolos dan tiap

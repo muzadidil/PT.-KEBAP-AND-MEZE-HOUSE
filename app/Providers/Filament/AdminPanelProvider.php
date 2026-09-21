@@ -42,6 +42,10 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn () => __('nav.group.sales')),
                 NavigationGroup::make()->label(fn () => __('nav.group.expenses')),
                 NavigationGroup::make()->label(fn () => __('nav.group.reports')),
+                // Pembukuan bulanan gaya berkas Excel klien. Grupnya sendiri,
+                // tidak menumpang yang sudah ada: isinya catatan yang ditulis
+                // tangan per bulan, bukan turunan dari transaksi kasir.
+                NavigationGroup::make()->label(fn () => __('zeytin.nav.group')),
                 NavigationGroup::make()->label(fn () => __('nav.group.master')),
             ])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')

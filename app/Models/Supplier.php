@@ -12,7 +12,9 @@ class Supplier extends Model
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        // `last_price` menampung harga terakhir dari sheet Supplier Database;
+        // lihat migrasi 2026_09_21_100000.
+        return ['active' => 'boolean', 'last_price' => 'integer'];
     }
 
     public function expenses(): HasMany
