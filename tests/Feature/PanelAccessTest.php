@@ -69,6 +69,24 @@ class PanelAccessTest extends TestCase
         ];
     }
 
+    /** Halaman yang dipakai kedua peran backoffice — Progres Rapat. */
+    public static function sharedPages(): array
+    {
+        return [
+            'meeting progress' => ['filament.admin.pages.meeting-progress'],
+        ];
+    }
+
+    #[DataProvider('sharedPages')]
+    public function test_halaman_bersama_terbuka_untuk_admin_dan_super_admin(string $route): void
+    {
+        $this->actingAs($this->admin())->get(route($route))->assertOk();
+
+        $this->flushSession();
+
+        $this->actingAs($this->superAdmin())->get(route($route))->assertOk();
+    }
+
     #[DataProvider('reportPages')]
     public function test_halaman_laporan_terbuka_untuk_admin(string $route): void
     {
@@ -109,6 +127,7 @@ class PanelAccessTest extends TestCase
 
     #[DataProvider('reportPages')]
     #[DataProvider('settingsPages')]
+    #[DataProvider('sharedPages')]
     public function test_panel_admin_tertutup_untuk_kasir(string $route): void
     {
         $this->actingAs($this->cashier())
@@ -239,7 +258,7 @@ class PanelAccessTest extends TestCase
             ->sort()
             ->all();
 
-        $covered = collect([...static::reportPages(), ...static::settingsPages()])
+        $covered = collect([...static::reportPages(), ...static::settingsPages(), ...static::sharedPages()])
             ->map(fn (array $row) => $row[0])
             ->push('filament.admin.pages.dashboard')
             ->sort()

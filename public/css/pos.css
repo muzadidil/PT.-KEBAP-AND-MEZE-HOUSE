@@ -716,3 +716,256 @@
     text-transform: uppercase;
     vertical-align: middle;
 }
+
+/* ---------- progres rapat ---------- */
+
+/*
+ * Halaman Progres Rapat; lihat MeetingProgress. Tombol, badge, dan isiannya
+ * komponen Filament, jadi yang ditulis di sini hanya yang tidak ada padanannya:
+ * centang bulat, bar progres, dan pohon sub-tugas yang menjorok per tingkat.
+ */
+.meeting {
+    display: grid;
+    gap: 1rem;
+}
+
+.meeting__toolbar,
+.meeting__row,
+.meeting__projects,
+.meeting__share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.meeting__toolbar {
+    justify-content: space-between;
+}
+
+.meeting__search {
+    flex: 1 1 14rem;
+    max-width: 22rem;
+}
+
+.meeting__panel {
+    display: grid;
+    gap: .625rem;
+    padding: .875rem;
+    border: 1px solid var(--pos-border);
+    border-radius: .75rem;
+    background: var(--pos-surface);
+}
+
+.meeting__textarea {
+    width: 100%;
+    padding: .5rem .75rem;
+    border: 1px solid var(--pos-border);
+    border-radius: .5rem;
+    background: var(--pos-surface-sunken);
+    color: var(--pos-text);
+    font: inherit;
+    font-size: .875rem;
+}
+
+.meeting__muted {
+    color: var(--pos-text-muted);
+    font-size: .75rem;
+}
+
+.meeting__error {
+    color: var(--pos-negative);
+    font-size: .8125rem;
+}
+
+.meeting__rename {
+    min-width: 12rem;
+}
+
+.meeting__list {
+    display: grid;
+    gap: .5rem;
+}
+
+.meeting__empty {
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--pos-border);
+    border-radius: .75rem;
+    text-align: center;
+    color: var(--pos-text-muted);
+}
+
+.meeting-task {
+    padding: .75rem .875rem;
+    border: 1px solid var(--pos-border);
+    border-radius: .75rem;
+    background: var(--pos-surface);
+    box-shadow: var(--pos-shadow);
+}
+
+.meeting-task__row,
+.meeting-sub__row {
+    display: flex;
+    align-items: flex-start;
+    gap: .625rem;
+}
+
+.meeting-task__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.meeting-task__text {
+    font-weight: 600;
+    color: var(--pos-text);
+    overflow-wrap: anywhere;
+}
+
+.meeting-task.is-done .meeting-task__text,
+.meeting-sub__text.is-done {
+    color: var(--pos-text-muted);
+    text-decoration: line-through;
+}
+
+.meeting-task__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin-top: .375rem;
+}
+
+.meeting-task__progress {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .5rem;
+    max-width: 22rem;
+}
+
+.meeting-task__actions,
+.meeting-sub__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+}
+
+.meeting-task__subtasks {
+    margin-top: .625rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--pos-border);
+}
+
+.meeting-sub {
+    padding-left: calc(var(--depth, 0) * 1.25rem);
+}
+
+.meeting-sub__row {
+    align-items: center;
+    padding: .25rem 0;
+}
+
+.meeting-sub__text {
+    flex: 1;
+    min-width: 0;
+    font-size: .875rem;
+    color: var(--pos-text);
+    overflow-wrap: anywhere;
+}
+
+.meeting-sub__add {
+    padding: .25rem 0 .25rem calc(var(--depth, 0) * 1.25rem + 1.75rem);
+    max-width: 30rem;
+}
+
+.meeting-bar {
+    flex: 1;
+    height: .375rem;
+    margin-top: .375rem;
+    border-radius: 999px;
+    background: var(--pos-surface-sunken);
+    overflow: hidden;
+}
+
+.meeting-task__progress .meeting-bar {
+    margin-top: 0;
+}
+
+.meeting-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--pos-positive);
+}
+
+/* Centang bulat: kosong berarti belum, terisi hijau berarti selesai. */
+.meeting-check {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.375rem;
+    height: 1.375rem;
+    margin-top: .0625rem;
+    border: 2px solid var(--pos-border);
+    border-radius: 999px;
+    background: var(--pos-surface);
+    color: transparent;
+    cursor: pointer;
+}
+
+.meeting-check--sm {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0;
+}
+
+.meeting-check svg {
+    width: .875rem;
+    height: .875rem;
+}
+
+.meeting-check:hover {
+    border-color: var(--pos-positive);
+}
+
+.meeting-check.is-checked {
+    border-color: var(--pos-positive);
+    background: var(--pos-positive);
+    color: #fff;
+}
+
+.meeting-check:disabled {
+    cursor: default;
+    opacity: .6;
+}
+
+.meeting-link {
+    display: inline-flex;
+    color: var(--pos-text-muted);
+}
+
+.meeting-link svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.meeting-edit {
+    display: grid;
+    gap: .5rem;
+}
+
+.meeting-edit--sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: .25rem 0;
+}
+
+.meeting-edit--sub .meeting-edit__text {
+    flex: 1 1 14rem;
+}
+
+[x-cloak] {
+    display: none !important;
+}

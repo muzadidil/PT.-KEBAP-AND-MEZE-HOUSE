@@ -80,6 +80,8 @@ return [
         'note' => 'Note',
         'date' => 'Date',
         'name' => 'Name',
+        'deduct_employee' => 'Deduct from employee',
+        'deduct_amount' => 'Deduction amount',
     ],
 
     'source' => [
@@ -180,6 +182,11 @@ return [
         'total' => 'Calculated as (qty × price) + tax − discount, the formula from the original spreadsheet.',
         'source' => 'Rows brought in by an Excel file are marked so a later import may replace them. A row you edit here becomes yours, and no import will overwrite it.',
         'month' => 'Stored as the first day of the month.',
+        'note_example' => 'e.g. broken glass, replaced with a new one',
+        'no_deduction' => 'No salary deduction',
+        'deduction' => 'Added automatically as a deduction on this employee’s payslip for the month.',
+        'deduction_applied' => 'Already deducted on payslip :number. To change it, edit that payslip.',
+        'deducted_from' => 'deducted from :name :amount',
     ],
 
 ];

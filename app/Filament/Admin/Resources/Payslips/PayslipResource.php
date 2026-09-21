@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Payslips\Pages\CreatePayslip;
 use App\Filament\Admin\Resources\Payslips\Pages\EditPayslip;
 use App\Filament\Admin\Resources\Payslips\Pages\ListPayslips;
 use App\Models\Employee;
+use App\Models\EmployeeDeduction;
 use App\Models\PayComponent;
 use App\Models\Payslip;
 use App\Support\Money;
@@ -17,6 +18,7 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -34,6 +36,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use UnitEnum;
 
 /**
@@ -99,7 +102,10 @@ class PayslipResource extends Resource
                                 ->preload()
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(fn ($state, Set $set) => $set('basic_salary', Employee::find($state)?->basic_salary ?? 0))
+                                ->afterStateUpdated(function ($state, Get $get, Set $set, ?Payslip $record) {
+                                    $set('basic_salary', Employee::find($state)?->basic_salary ?? 0);
+                                    static::fillPendingDeductions($get, $set, $record);
+                                })
                                 ->columnSpanFull(),
 
                             DatePicker::make('period')
@@ -109,6 +115,7 @@ class PayslipResource extends Resource
                                 ->default(now()->startOfMonth())
                                 ->required()
                                 ->live()
+                                ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => static::fillPendingDeductions($get, $set, $record))
                                 ->rule(fn (Get $get, ?Payslip $record): Closure => function (string $attribute, $value, Closure $fail) use ($get, $record) {
                                     $existing = Payslip::query()
                                         ->where('employee_id', $get('employee_id'))
@@ -189,10 +196,41 @@ class PayslipResource extends Resource
                     ->default(0)
                     ->live(onBlur: true)
                     ->readOnly(fn (Get $get) => (bool) PayComponent::match($type, $get('label'))?->fixed),
+
+                Hidden::make('deduction_id'),
             ])
             ->defaultItems(0)
             ->addActionLabel(__('payroll.action.'.$addLabel))
             ->live();
+    }
+
+    /**
+     * Potongan karyawan yang belum dipotong — gelas pecah dan semacamnya,
+     * dicatat Admin bersama pengeluarannya — dimasukkan sebagai baris
+     * potongan. Baris yang diketik sendiri tidak disentuh; baris potongan
+     * lama diganti, supaya mengganti karyawan atau bulan tidak meninggalkan
+     * potongan orang lain di slip ini.
+     */
+    protected static function fillPendingDeductions(Get $get, Set $set, ?Payslip $record): void
+    {
+        $lines = collect($get('deductions') ?? [])
+            ->reject(fn (array $line) => filled($line['deduction_id'] ?? null));
+
+        if ($employeeId = $get('employee_id')) {
+            $pending = EmployeeDeduction::query()
+                ->pendingFor((int) $employeeId, Carbon::parse($get('period') ?: now()), $record?->getKey())
+                ->get();
+
+            foreach ($pending as $deduction) {
+                $lines->put((string) Str::uuid(), [
+                    'label' => $deduction->label(),
+                    'amount' => $deduction->amount,
+                    'deduction_id' => $deduction->getKey(),
+                ]);
+            }
+        }
+
+        $set('deductions', $lines->all());
     }
 
     /** Slip dari isian formulir yang belum disimpan, untuk pratinjau. */

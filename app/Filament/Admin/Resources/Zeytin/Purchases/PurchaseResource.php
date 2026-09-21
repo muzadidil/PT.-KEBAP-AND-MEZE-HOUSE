@@ -18,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Belanja harian yang dibayar tunai — sheet Expense.
@@ -81,6 +82,10 @@ class PurchaseResource extends Resource
 
             static::money('tax')->helperText(__('zeytin.help.total')),
 
+            static::noteField(),
+
+            static::deductionFields(),
+
             static::sourceField(),
         ]);
     }
@@ -88,6 +93,8 @@ class PurchaseResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Catatan dan potongan gaji tampil di bawah nama barang.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('deduction.employee'))
             ->defaultSort('date', 'desc')
             ->columns([
                 TextColumn::make('date')
@@ -97,7 +104,7 @@ class PurchaseResource extends Resource
 
                 TextColumn::make('item')
                     ->label(__('zeytin.field.item'))
-                    ->description(fn (Purchase $record) => $record->vendor ?: null)
+                    ->description(fn (Purchase $record) => static::noteDescription($record))
                     ->searchable()
                     ->wrap(),
 

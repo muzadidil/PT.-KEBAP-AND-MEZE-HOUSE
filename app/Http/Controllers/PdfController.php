@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Filament\Admin\Pages\MeetingProgress;
 use App\Filament\Admin\Pages\Zeytin\MonthlyLedger;
 use App\Filament\Admin\Resources\Payslips\PayslipResource;
 use App\Models\Payslip;
+use App\Support\Meetings\MeetingPdf;
+use App\Support\Meetings\MeetingReport;
 use App\Support\Payroll\PayslipPdf;
 use App\Support\Zeytin\DailyLedger;
 use App\Support\Zeytin\PeriodPdf;
@@ -49,7 +52,18 @@ class PdfController extends Controller
         return $this->inline(new PayslipPdf($payslip));
     }
 
-    protected function inline(PeriodPdf|PayslipPdf $pdf): Response
+    /** Progres Rapat: semua proyek, tanpa proyek, atau satu proyek. */
+    public function meeting(Request $request): Response
+    {
+        abort_unless(MeetingProgress::canAccess(), 403);
+
+        $scope = (string) $request->query('scope', 'all');
+        $scope = in_array($scope, ['all', 'none'], true) || ctype_digit($scope) ? $scope : 'all';
+
+        return $this->inline(new MeetingPdf(MeetingReport::make(), $scope));
+    }
+
+    protected function inline(PeriodPdf|PayslipPdf|MeetingPdf $pdf): Response
     {
         return response($pdf->render(), 200, [
             'Content-Type' => 'application/pdf',

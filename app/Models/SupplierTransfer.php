@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BookkeepingRecord;
+use App\Models\Concerns\HasEmployeeDeduction;
 use App\Support\Zeytin\RecordSource;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 class SupplierTransfer extends Model
 {
     use BookkeepingRecord;
+    use HasEmployeeDeduction;
 
     protected $guarded = ['id'];
 

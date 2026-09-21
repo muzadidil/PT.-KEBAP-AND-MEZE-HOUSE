@@ -22,6 +22,8 @@ akun, bukan di sesi.
 | **Admin** | `/admin` | Laporan: Pengeluaran, Modal Pemilik, Pembukuan Bulanan, 10 laporan |
 | **Kasir** | `/` | Penjualan: Kasir (POS), Rekap Harian, Transaksi Saya |
 
+**Progres Rapat** dibuka Super Admin maupun Admin (`ForBackoffice`).
+
 Ketiganya tidak saling tumpang tindih. Super Admin tidak melihat laporan,
 Admin tidak melihat pengaturan, dan **tidak ada menu Penjualan di panel
 admin** — penjualan dipegang kasir, dan angkanya sampai ke Admin lewat
@@ -450,9 +452,53 @@ formulir:
 - **Karyawan keluar dinonaktifkan, bukan dihapus**, dan nama, NIK, serta
   jabatan disalin ke slip — mengubah data karyawan tidak mengubah slip lama.
 
+### Potongan gaji dari pengeluaran
+
+**Belanja Tunai** dan **Transfer Pemasok** punya kolom **Catatan** dan
+pilihan **Potong gaji karyawan**. Contohnya: gelas pecah, gelas pengganti
+dibeli, catatannya "Gelas pecah", dan karyawan yang memecahkannya dipotong
+Rp 50.000.
+
+Potongannya disimpan sebagai `EmployeeDeduction` yang terhubung ke baris
+pengeluarannya — tanggal dan alasannya ikut baris itu. Saat Super Admin
+membuat slip karyawan tersebut, potongan yang tertunda **otomatis masuk**
+sebagai baris potongan: "Gelas pecah (12/09)". Begitu slip disimpan,
+potongannya ditandai, dan tidak ditawarkan ke slip mana pun lagi.
+
+- Potongan yang tertunda dari bulan-bulan sebelumnya ikut ke slip berikutnya;
+  potongan bulan depan belum.
+- Menghapus slip mengembalikan potongannya ke antrean, bukan menghapusnya.
+- Setelah masuk slip, isian potongan di formulir pengeluaran dikunci, dan
+  menghapus pengeluarannya tidak menghapus potongan itu — slipnya sudah
+  diserahkan. Yang belum masuk slip ikut terhapus bersama pengeluarannya.
 Slip gaji **belum** masuk ke buku besar; menyambungkannya ke Gaji bulanan
 dikerjakan belakangan, bersama keputusan soal gaji yang sekarang bisa
 tercatat di dua tempat (Pengeluaran kategori Gaji dan Gaji bulanan).
+
+## Progres Rapat
+
+Tugas hasil rapat dan seberapa jauh sudah dikerjakan — meniru aplikasi
+TaskFlow di repo `TODO_muzadidil`, dipindahkan dari Firestore ke sini.
+
+| TaskFlow | Di sini |
+|---|---|
+| Proyek di sidebar, dengan persentasenya | Deret proyek di atas daftar, dengan persentasenya |
+| Sub-tugas bertingkat tanpa batas | Sama — `meeting_tasks.parent_id` |
+| Progres otomatis | Tugas: sub-tugas selesai ÷ seluruh sub-tugas di level mana pun; proyek & keseluruhan: rata-rata tugas utama |
+| Kategori, prioritas, tenggat, link | Sama; tenggat hari ini/besok = mendekati, lewat = terlambat |
+| Semua / Hari Ini / Belum Selesai / Selesai / Terlambat / Arsip | Sama |
+| Arsip otomatis sehari setelah selesai | Sama, dijalankan saat halamannya dibuka |
+| Import dari teks | Sama — satu tugas per baris |
+| Salin Teks & Salin WA | Sama persis bentuknya, termasuk *tebal*, _miring_, ~coret~ |
+| Export PDF | Dibuka di tab baru; cakupannya proyek yang sedang dipilih |
+| — | **Kirim WA**: membuka WhatsApp dengan pesannya sudah terisi |
+
+Teks dan pesan WhatsApp disusun di `App\Support\Meetings\MeetingReport`,
+progresnya di `TaskBoard` — satu kueri untuk seluruh pohon, bukan satu per
+tingkat. Tugas yang sudah diarsipkan tidak ikut dibagikan.
+
+Menambah sub-tugas di tugas yang sudah selesai, atau membatalkan centang
+sub-tugas, membuka lagi tugas di atasnya: ada pekerjaan yang belum beres.
 
 ## Struktur
 
@@ -480,6 +526,10 @@ app/Filament/Admin/Resources/Employees, PayComponents, Payslips   penggajian
 app/Support/Payroll/                PDF slip & kop slip
 app/Support/Terbilang.php           angka rupiah dalam kata-kata
 resources/views/payslips/paper      kertas slip, dipakai pratinjau & PDF
+app/Models/EmployeeDeduction.php    potongan gaji dari pengeluaran
+
+app/Filament/Admin/Pages/MeetingProgress.php   Progres Rapat
+app/Support/Meetings/               progres, teks & WhatsApp, PDF rapat
 app/Filament/Admin/Pages/Zeytin/    buku besar bulanan + impor Excel
 app/Filament/Admin/Resources/Zeytin/  keenam sheet + dua data induknya
 
@@ -496,7 +546,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**253 tes, 1.225 asersi, semuanya lolos** (diverifikasi 21 September 2026).
+**280 tes, 1.312 asersi, semuanya lolos** (diverifikasi 21 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -569,6 +619,15 @@ Dan untuk penggajian:
 - slip kedua untuk karyawan dan bulan yang sama ditolak
 - terbilang benar untuk sebelas, seratus, seribu, juta, dan miliar
 - PDF slip berbahasa Indonesia walau aplikasinya berbahasa Inggris
+- potongan dari pengeluaran masuk slip karyawannya sendiri, tidak terpotong
+  dua kali, dan kembali ke antrean kalau slipnya dihapus
+
+Dan untuk Progres Rapat:
+
+- progres dihitung dari sub-tugas di level mana pun; tugas yang dicentang 100%
+- tugas selesai diarsipkan sehari kemudian, bukan sebelumnya
+- pesan WhatsApp sama kata per kata dengan bentuk TaskFlow
+- menambah sub-tugas membuka lagi tugas yang sudah selesai
 
 ## Yang belum dikerjakan
 

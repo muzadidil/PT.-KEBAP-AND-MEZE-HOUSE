@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\Concerns;
 
+use App\Models\Employee;
 use App\Models\PaymentMethodOption;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
@@ -9,7 +10,9 @@ use App\Support\Money;
 use App\Support\Zeytin\RecordSource;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\Summarizers\Sum;
@@ -17,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
@@ -171,5 +175,72 @@ trait BookkeepingResource
                 ->orderBy('name')
                 ->pluck('name')
                 ->all());
+    }
+
+    /** Catatan bebas pada pengeluaran — "gelas pecah", "ganti yang hilang". */
+    protected static function noteField(): TextInput
+    {
+        return TextInput::make('note')
+            ->label(__('zeytin.field.note'))
+            ->placeholder(__('zeytin.help.note_example'))
+            ->maxLength(200)
+            ->columnSpanFull();
+    }
+
+    /**
+     * Potong gaji karyawan karena pengeluaran ini.
+     *
+     * Disimpan sebagai EmployeeDeduction yang terhubung ke baris ini, lalu
+     * otomatis masuk slip gaji karyawan itu. Mengosongkan karyawannya
+     * menghapus potongannya. Setelah masuk slip, isiannya dikunci: slip
+     * yang sudah dibuat tidak boleh berubah diam-diam dari halaman lain.
+     */
+    protected static function deductionFields(): Group
+    {
+        // Di dalam grup berelasi, $record adalah potongannya sendiri
+        // (EmployeeDeduction), bukan baris pengeluaran.
+        $applied = fn (?Model $record) => filled($record?->payslip_id);
+
+        return Group::make([
+            Select::make('employee_id')
+                ->label(__('zeytin.field.deduct_employee'))
+                ->options(fn () => Employee::query()->active()->orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->placeholder(__('zeytin.help.no_deduction'))
+                ->live()
+                ->disabled($applied),
+
+            TextInput::make('amount')
+                ->label(__('zeytin.field.deduct_amount'))
+                ->prefix('Rp')
+                ->numeric()
+                ->minValue(1)
+                ->required(fn (Get $get) => filled($get('employee_id')))
+                ->visible(fn (Get $get) => filled($get('employee_id')))
+                ->disabled($applied)
+                ->helperText(fn (?Model $record) => $applied($record)
+                    ? __('zeytin.help.deduction_applied', ['number' => $record->payslip?->number])
+                    : __('zeytin.help.deduction')),
+        ])
+            ->relationship('deduction', condition: fn (?array $state) => filled($state['employee_id'] ?? null))
+            ->columns(2)
+            ->columnSpanFull();
+    }
+
+    /** Catatan dan potongan gaji di tabel: di bawah nama barangnya. */
+    protected static function noteDescription(Model $record): ?string
+    {
+        $parts = array_filter([
+            $record->vendor ?: null,
+            $record->note ? '“'.$record->note.'”' : null,
+            $record->deduction
+                ? __('zeytin.help.deducted_from', [
+                    'name' => $record->deduction->employee?->name,
+                    'amount' => Money::format($record->deduction->amount),
+                ])
+                : null,
+        ]);
+
+        return $parts ? implode(' · ', $parts) : null;
     }
 }

@@ -20,6 +20,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Pembayaran ke pemasok lewat rekening — sheet Supplier Transfer Payment.
@@ -98,6 +99,10 @@ class SupplierTransferResource extends Resource
                 ->options(static::statuses())
                 ->native(false),
 
+            static::noteField(),
+
+            static::deductionFields(),
+
             static::sourceField(),
         ]);
     }
@@ -105,6 +110,8 @@ class SupplierTransferResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Catatan dan potongan gaji tampil di bawah nama barang.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('deduction.employee'))
             ->defaultSort('date', 'desc')
             ->columns([
                 TextColumn::make('date')
@@ -114,7 +121,7 @@ class SupplierTransferResource extends Resource
 
                 TextColumn::make('item')
                     ->label(__('zeytin.field.item'))
-                    ->description(fn (SupplierTransfer $record) => $record->vendor ?: null)
+                    ->description(fn (SupplierTransfer $record) => static::noteDescription($record))
                     ->searchable()
                     ->wrap(),
 

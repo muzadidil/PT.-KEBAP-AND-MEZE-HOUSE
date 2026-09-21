@@ -72,6 +72,8 @@ return [
         'note' => 'Catatan',
         'date' => 'Tanggal',
         'name' => 'Nama',
+        'deduct_employee' => 'Potong gaji karyawan',
+        'deduct_amount' => 'Jumlah potongan',
     ],
 
     'source' => [
@@ -172,6 +174,11 @@ return [
         'total' => 'Dihitung (jumlah × harga) + pajak − potongan, rumus dari berkas Excel aslinya.',
         'source' => 'Baris yang dibawa berkas Excel ditandai, jadi impor berikutnya boleh menggantinya. Baris yang Anda ubah di sini menjadi milik Anda, dan tidak akan ditimpa impor.',
         'month' => 'Disimpan sebagai tanggal 1 bulan itu.',
+        'note_example' => 'mis. gelas pecah, diganti yang baru',
+        'no_deduction' => 'Tidak ada potongan gaji',
+        'deduction' => 'Otomatis masuk potongan di slip gaji karyawan ini untuk bulannya.',
+        'deduction_applied' => 'Sudah dipotong di slip :number. Untuk mengubahnya, ubah slip tersebut.',
+        'deducted_from' => 'potong gaji :name :amount',
     ],
 
 ];

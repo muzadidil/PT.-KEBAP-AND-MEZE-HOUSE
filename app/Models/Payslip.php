@@ -61,6 +61,31 @@ class Payslip extends Model
 
             $slip->number ??= static::nextNumber($slip->period);
         });
+
+        static::saved(fn (Payslip $slip) => $slip->linkDeductions());
+    }
+
+    /**
+     * Menandai potongan karyawan (gelas pecah, dan sebagainya) yang dipotong
+     * slip ini, dan melepas yang barisnya sudah dihapus dari slip — potongan
+     * yang dilepas kembali menunggu slip berikutnya, tidak hilang.
+     */
+    public function linkDeductions(): void
+    {
+        $ids = collect($this->deductions)->pluck('deduction_id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        EmployeeDeduction::query()
+            ->where('payslip_id', $this->id)
+            ->whereNotIn('id', $ids ?: [0])
+            ->update(['payslip_id' => null]);
+
+        if ($ids) {
+            EmployeeDeduction::query()
+                ->whereIn('id', $ids)
+                ->where('employee_id', $this->employee_id)
+                ->whereNull('payslip_id')
+                ->update(['payslip_id' => $this->id]);
+        }
     }
 
     /**
@@ -103,7 +128,7 @@ class Payslip extends Model
      * Baris tunjangan/potongan yang bersih: tanpa baris kosong, nominal
      * berupa angka bulat, dan item "fix" dikunci ke nominal bawaannya.
      *
-     * @return array<int, array{label: string, amount: int}>
+     * @return array<int, array{label: string, amount: int, deduction_id?: int}>
      */
     public static function normalize(string $type, mixed $lines): array
     {
@@ -123,7 +148,15 @@ class Payslip extends Model
                 $amount = $component->default_amount;
             }
 
-            $clean[] = ['label' => $label, 'amount' => $amount];
+            $row = ['label' => $label, 'amount' => $amount];
+
+            // Baris yang datang dari potongan karyawan membawa nomornya,
+            // supaya potongannya bisa ditandai sudah dipotong slip ini.
+            if (filled($line['deduction_id'] ?? null)) {
+                $row['deduction_id'] = (int) $line['deduction_id'];
+            }
+
+            $clean[] = $row;
         }
 
         return $clean;
