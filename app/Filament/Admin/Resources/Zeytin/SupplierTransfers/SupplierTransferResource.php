@@ -57,7 +57,7 @@ class SupplierTransferResource extends Resource
     /** Siapa yang menalangi. "—" ikut jadi pilihan karena di berkas
      * aslinya lebih dari separuh barisnya memang kosong, dan yang belum
      * jelas lebih baik dibiarkan begitu daripada ditebak. */
-    protected static function statuses(): array
+    public static function statuses(): array
     {
         return [
             'PT KEBAP PAID' => __('zeytin.status.kebap_paid'),

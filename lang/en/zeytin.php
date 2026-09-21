@@ -153,7 +153,7 @@ return [
     ],
 
     'pdf' => [
-        'download' => 'Download PDF',
+        'view' => 'View PDF',
         'summary' => 'Summary',
         'breakdown' => 'Breakdown',
         'generated' => 'Generated',

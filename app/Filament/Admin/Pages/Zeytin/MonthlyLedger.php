@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Pages\Zeytin;
 
 use App\Filament\Admin\Concerns\ForAdmin;
+use App\Filament\Admin\Pages\Reports\Concerns\HasPeriod;
 use App\Support\Money;
 use App\Support\Zeytin\Channels;
 use App\Support\Zeytin\DailyLedger;
@@ -11,7 +12,6 @@ use App\Support\Zeytin\PeriodPdf;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
@@ -30,18 +30,13 @@ use UnitEnum;
 class MonthlyLedger extends Page
 {
     use ForAdmin;
+    use HasPeriod;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
     protected static ?int $navigationSort = 1;
 
     protected string $view = 'filament.admin.pages.zeytin.monthly-ledger';
-
-    #[Url]
-    public string $from = '';
-
-    #[Url]
-    public string $to = '';
 
     #[Url]
     public string $grouping = 'daily';
@@ -59,27 +54,6 @@ class MonthlyLedger extends Page
     public function getTitle(): string
     {
         return __('zeytin.nav.ledger');
-    }
-
-    public function mount(): void
-    {
-        $this->from = $this->from ?: Carbon::today()->startOfMonth()->toDateString();
-        $this->to = $this->to ?: Carbon::today()->toDateString();
-    }
-
-    public function fromDate(): Carbon
-    {
-        return Carbon::parse($this->from ?: Carbon::today()->startOfMonth())->startOfDay();
-    }
-
-    public function toDate(): Carbon
-    {
-        $to = Carbon::parse($this->to ?: Carbon::today())->startOfDay();
-
-        // Rentang terbalik tidak pernah berguna, dan kalau dibiarkan akan
-        // memberi tabel kosong tanpa penjelasan. Diperlakukan sebagai satu
-        // hari saja — perlakuan yang sama dengan laporan penjualan kasir.
-        return $to->lt($this->fromDate()) ? $this->fromDate() : $to;
     }
 
     /** @return array<string, mixed> */
@@ -146,42 +120,10 @@ class MonthlyLedger extends Page
         return $rows;
     }
 
-    public function applyPreset(string $preset): void
-    {
-        $today = Carbon::today();
-
-        [$from, $to] = match ($preset) {
-            'today' => [$today->copy(), $today->copy()],
-            'this_month' => [$today->copy()->startOfMonth(), $today->copy()],
-            'last_month' => [
-                $today->copy()->subMonthNoOverflow()->startOfMonth(),
-                $today->copy()->subMonthNoOverflow()->endOfMonth(),
-            ],
-            'this_year' => [$today->copy()->startOfYear(), $today->copy()],
-            'last_year' => [
-                $today->copy()->subYearNoOverflow()->startOfYear(),
-                $today->copy()->subYearNoOverflow()->endOfYear(),
-            ],
-            'last_7' => [$today->copy()->subDays(6), $today->copy()],
-            'last_30' => [$today->copy()->subDays(29), $today->copy()],
-            default => [$this->fromDate(), $this->toDate()],
-        };
-
-        $this->from = $from->toDateString();
-        $this->to = $to->toDateString();
-
-        $this->forget();
-    }
-
     public function setGrouping(string $grouping): void
     {
         $this->grouping = in_array($grouping, ['daily', 'monthly', 'yearly'], true) ? $grouping : 'daily';
 
-        $this->forget();
-    }
-
-    public function updated(): void
-    {
         $this->forget();
     }
 
@@ -207,18 +149,15 @@ class MonthlyLedger extends Page
     }
 
     /**
-     * Laporan PDF untuk dikirim ke pemilik, dari laporan dan pengelompokan
-     * yang sedang tampil — sama seperti unduhan Excel di atas.
+     * PDF untuk dikirim ke pemilik, dari rentang dan pengelompokan yang
+     * sedang tampil. Dibuka di tab baru; lihat App\Http\Controllers\PdfController.
      */
-    public function exportPdf(): StreamedResponse
+    public function pdfUrl(): string
     {
-        $pdf = new PeriodPdf($this->report, $this->grouping);
-        $content = $pdf->render();
-
-        return response()->streamDownload(function () use ($content) {
-            echo $content;
-        }, $pdf->filename(), [
-            'Content-Type' => 'application/pdf',
+        return route('filament.admin.pdf.ledger', [
+            'from' => $this->fromDate()->toDateString(),
+            'to' => $this->toDate()->toDateString(),
+            'grouping' => $this->grouping,
         ]);
     }
 

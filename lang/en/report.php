@@ -13,11 +13,21 @@ return [
     'days' => 'Days',
     'transactions' => 'Transactions',
     'total' => 'Total',
-    'average_per_day' => 'Average per day',
+    'average_per_recorded_day' => 'Average per recorded day',
+    'average_hint' => 'Over the :days days that have sales recorded.',
     'no_data' => 'Nothing recorded in this period.',
     'print' => 'Print',
     'source_bookkeeping' => 'Source: Daily Income in Monthly Bookkeeping — the same as the Monthly Ledger.',
     'open_ledger' => 'Open the ledger for this range',
+    'people' => 'People',
+
+    // Where each report's figures come from, shown above its table.
+    'source' => [
+        'cash_expenses' => 'Source: Cash Purchases in Monthly Bookkeeping — the total matches Cash purchases in the Monthly Ledger for the same range.',
+        'online_transfers' => 'Source: Supplier Transfers in Monthly Bookkeeping — the total matches Supplier transfers in the Monthly Ledger for the same range.',
+        'salary' => 'Source: Payroll — the same as Payroll in the Monthly Ledger. Monthly totals only; per-person figures are for the Super Admin.',
+        'tax' => 'Source: the Expenses menu, Tax category. Not yet part of the Monthly Ledger.',
+    ],
     'export_csv' => 'Download CSV',
     'grand_total' => 'Grand total',
     'as_of' => 'As of',

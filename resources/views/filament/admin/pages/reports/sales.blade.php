@@ -6,34 +6,15 @@
 @endphp
 
 <x-filament-panels::page>
-    {{-- Saringan periode --}}
-    <div class="filters">
-        <label class="filters__field">
-            <span class="pos__label">{{ __('report.from') }}</span>
-            <input type="date" wire:model.live="from" max="{{ $this->to }}">
-        </label>
+    <x-report-period :from="$this->from" :to="$this->to">
+        <button type="button" class="pos__chip" wire:click="exportCsv">
+            {{ __('report.export_csv') }}
+        </button>
 
-        <label class="filters__field">
-            <span class="pos__label">{{ __('report.to') }}</span>
-            <input type="date" wire:model.live="to" min="{{ $this->from }}">
-        </label>
-
-        <div class="filters__presets">
-            @foreach (['today', 'last_7', 'last_30', 'this_month', 'last_month', 'this_year', 'last_year'] as $preset)
-                <button type="button" class="pos__chip" wire:click="applyPreset('{{ $preset }}')">
-                    {{ __('report.preset.'.$preset) }}
-                </button>
-            @endforeach
-
-            <button type="button" class="pos__chip" wire:click="exportCsv">
-                {{ __('report.export_csv') }}
-            </button>
-
-            <button type="button" class="pos__chip" onclick="window.print()">
-                {{ __('report.print') }}
-            </button>
-        </div>
-    </div>
+        <button type="button" class="pos__chip" onclick="window.print()">
+            {{ __('report.print') }}
+        </button>
+    </x-report-period>
 
     {{-- Asal angkanya ditulis di layar, supaya tidak ada yang mengira
          laporan ini dan Buku Besar menghitung dari tempat berbeda. --}}
@@ -52,9 +33,16 @@
             </div>
         </div>
 
+        {{-- Rinciannya ditulis di kartu: angka pengeluaran tanpa rincian
+             selalu memancing pertanyaan "ini dari mana". --}}
         <div class="stat">
             <div class="stat__label">{{ __('zeytin.card.total_expenses') }}</div>
             <div class="stat__value">{{ $this->money($report['total_expenses']) }}</div>
+            <div class="stat__hint">
+                {{ __('zeytin.card.cash_expense') }} {{ $this->money($report['cash_expense']) }}<br>
+                {{ __('zeytin.card.transfers') }} {{ $this->money($report['transfers']) }}<br>
+                {{ __('zeytin.card.payroll') }} {{ $this->money($report['payroll']) }}
+            </div>
         </div>
 
         <div class="stat">
@@ -65,8 +53,9 @@
         </div>
 
         <div class="stat">
-            <div class="stat__label">{{ __('report.average_per_day') }}</div>
+            <div class="stat__label">{{ __('report.average_per_recorded_day') }}</div>
             <div class="stat__value">{{ $this->money($this->averagePerDay()) }}</div>
+            <div class="stat__hint">{{ __('report.average_hint', ['days' => $report['recorded_days']]) }}</div>
         </div>
     </div>
 

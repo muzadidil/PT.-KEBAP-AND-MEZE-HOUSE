@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Pages\Reports;
 
 use App\Filament\Admin\Concerns\ForAdmin;
+use App\Filament\Admin\Pages\Reports\Concerns\HasPeriod;
 use App\Filament\Admin\Pages\Zeytin\MonthlyLedger;
 use App\Support\Money;
 use App\Support\Zeytin\Channels;
@@ -10,10 +11,8 @@ use App\Support\Zeytin\DailyLedger;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Url;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
@@ -33,51 +32,15 @@ use UnitEnum;
 abstract class SalesReport extends Page
 {
     use ForAdmin;
+    use HasPeriod;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected string $view = 'filament.admin.pages.reports.sales';
 
-    #[Url]
-    public string $from = '';
-
-    #[Url]
-    public string $to = '';
-
     public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('nav.group.reports');
-    }
-
-    public function mount(): void
-    {
-        $this->from = $this->from ?: static::defaultFrom()->toDateString();
-        $this->to = $this->to ?: static::defaultTo()->toDateString();
-    }
-
-    protected static function defaultFrom(): Carbon
-    {
-        return Carbon::today()->startOfMonth();
-    }
-
-    protected static function defaultTo(): Carbon
-    {
-        return Carbon::today();
-    }
-
-    public function fromDate(): Carbon
-    {
-        return Carbon::parse($this->from ?: static::defaultFrom())->startOfDay();
-    }
-
-    public function toDate(): Carbon
-    {
-        $to = Carbon::parse($this->to ?: static::defaultTo())->startOfDay();
-
-        // Rentang terbalik tidak pernah berguna, dan kalau dibiarkan akan
-        // memberi tabel kosong tanpa penjelasan. Diperlakukan sebagai satu
-        // hari saja.
-        return $to->lt($this->fromDate()) ? $this->fromDate() : $to;
     }
 
     /**
@@ -111,48 +74,25 @@ abstract class SalesReport extends Page
         return $this->group($this->report['rows']);
     }
 
-    /** Rata-rata harian atas rentang yang dipilih, bukan atas jumlah baris. */
+    /**
+     * Rata-rata per hari yang benar-benar tercatat.
+     *
+     * Bukan dibagi seluruh hari di rentang: Penjualan Tahunan membuka lima
+     * tahun, padahal pembukuannya baru mulai Agustus 2026, sehingga 280 juta
+     * dibagi 1.725 hari tampil sebagai "Rp 162.888 per hari" — angka yang
+     * tidak menggambarkan satu hari pun.
+     */
     public function averagePerDay(): int
     {
-        return $this->report['average_per_day'];
+        $days = $this->report['recorded_days'];
+
+        return $days > 0 ? intdiv($this->report['total_sales'], $days) : 0;
     }
 
     /** Buku Besar Bulanan untuk rentang yang sama, tempat angkanya dirinci. */
     public function ledgerUrl(): string
     {
         return MonthlyLedger::getUrl(['from' => $this->from, 'to' => $this->to]);
-    }
-
-    public function applyPreset(string $preset): void
-    {
-        $today = Carbon::today();
-
-        [$from, $to] = match ($preset) {
-            'today' => [$today->copy(), $today->copy()],
-            'this_month' => [$today->copy()->startOfMonth(), $today->copy()],
-            'last_month' => [
-                $today->copy()->subMonthNoOverflow()->startOfMonth(),
-                $today->copy()->subMonthNoOverflow()->endOfMonth(),
-            ],
-            'this_year' => [$today->copy()->startOfYear(), $today->copy()],
-            'last_year' => [
-                $today->copy()->subYearNoOverflow()->startOfYear(),
-                $today->copy()->subYearNoOverflow()->endOfYear(),
-            ],
-            'last_7' => [$today->copy()->subDays(6), $today->copy()],
-            'last_30' => [$today->copy()->subDays(29), $today->copy()],
-            default => [$this->fromDate(), $this->toDate()],
-        };
-
-        $this->from = $from->toDateString();
-        $this->to = $to->toDateString();
-
-        $this->forget();
-    }
-
-    public function updated(): void
-    {
-        $this->forget();
     }
 
     protected function forget(): void

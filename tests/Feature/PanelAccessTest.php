@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Admin\Widgets\BusinessOverview;
 use App\Filament\Admin\Widgets\SettingsOverview;
 use App\Filament\Admin\Widgets\ZeytinOverview;
 use Filament\Facades\Filament;
@@ -133,8 +132,9 @@ class PanelAccessTest extends TestCase
     }
 
     /**
-     * Admin melihat angka pembukuan dan penjualan; Super Admin melihat isi
-     * pengaturannya. Widget dasbor dimuat belakangan oleh Filament, jadi
+     * Admin melihat angka pembukuan saja — kartu transaksi kasir sudah
+     * dihapus supaya tidak ada dua angka laba di satu halaman; Super Admin
+     * melihat isi pengaturannya. Widget dasbor dimuat belakangan oleh Filament, jadi
      * tidak diperiksa lewat HTML halaman, melainkan lewat komponennya.
      */
     public function test_widget_dasbor_mengikuti_peran(): void
@@ -145,7 +145,6 @@ class PanelAccessTest extends TestCase
         $this->actingAs($this->admin());
 
         $this->assertTrue(ZeytinOverview::canView());
-        $this->assertTrue(BusinessOverview::canView());
         $this->assertFalse(SettingsOverview::canView());
 
         Livewire::test(ZeytinOverview::class)
@@ -155,7 +154,6 @@ class PanelAccessTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         $this->assertFalse(ZeytinOverview::canView());
-        $this->assertFalse(BusinessOverview::canView());
         $this->assertTrue(SettingsOverview::canView());
 
         Livewire::test(SettingsOverview::class)

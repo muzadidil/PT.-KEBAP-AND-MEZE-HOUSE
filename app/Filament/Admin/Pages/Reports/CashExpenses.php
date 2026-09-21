@@ -2,13 +2,19 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
-use App\Enums\PaymentMethod;
+use App\Models\Purchase;
+use BackedEnum;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
-use BackedEnum;
 
-/** Pengeluaran yang dibayar tunai dari laci kasir. */
+/**
+ * Belanja tunai — sheet Expense di berkas Excel klien.
+ *
+ * Membaca Belanja Tunai di Pembukuan Bulanan, bukan menu Pengeluaran:
+ * totalnya sama dengan kartu Belanja tunai di Buku Besar untuk rentang yang
+ * sama.
+ */
 class CashExpenses extends ExpenseReport
 {
     protected static ?int $navigationSort = 50;
@@ -25,20 +31,29 @@ class CashExpenses extends ExpenseReport
         return __('nav.cash_expenses');
     }
 
-    protected function scopeQuery(Builder $query): Builder
+    public function source(): string
     {
-        return $query->where('method', PaymentMethod::Cash);
+        return __('report.source.cash_expenses');
     }
 
-    protected function extraColumns(): array
+    protected function baseQuery(): Builder
+    {
+        return Purchase::query();
+    }
+
+    protected function detailColumns(): array
     {
         return [
-            TextColumn::make('category')->label(__('field.category'))->badge(),
-            TextColumn::make('paidByOwner.name')
-                ->label(__('field.paid_by_owner'))
-                ->placeholder('—')
-                ->badge()
-                ->color('warning'),
+            TextColumn::make('item')
+                ->label(__('zeytin.field.item'))
+                ->description(fn (Purchase $record) => $record->vendor ?: null)
+                ->searchable(['item', 'vendor'])
+                ->wrap(),
+
+            TextColumn::make('qty')
+                ->label(__('zeytin.field.qty'))
+                ->formatStateUsing(fn (Purchase $record) => trim($record->qty.' '.$record->unit))
+                ->alignEnd(),
         ];
     }
 }

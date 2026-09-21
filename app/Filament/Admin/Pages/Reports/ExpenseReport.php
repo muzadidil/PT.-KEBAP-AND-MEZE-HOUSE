@@ -3,13 +3,11 @@
 namespace App\Filament\Admin\Pages\Reports;
 
 use App\Filament\Admin\Concerns\ForAdmin;
-use App\Models\Expense;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -20,12 +18,14 @@ use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 /**
- * Induk laporan pengeluaran: Cash Expenses, Online Transfers, Salary, Tax.
+ * Induk laporan pengeluaran berbentuk daftar: Pengeluaran Tunai, Transfer
+ * Online, Pajak.
  *
- * Keempatnya adalah tabel `expenses` yang sama dengan penyaring berbeda,
- * bukan tabel tersendiri. Karena itu satu pengeluaran tidak pernah perlu
- * dicatat dua kali, dan total di halaman Expenses selalu cocok dengan
- * jumlah seluruh laporan turunannya.
+ * Tiap laporan menyebut tabel sumbernya sendiri. Pengeluaran Tunai dan
+ * Transfer Online membaca Belanja Tunai dan Transfer Pemasok di Pembukuan
+ * Bulanan — baris yang sama yang dijumlahkan Buku Besar — jadi total di
+ * kaki tabelnya sama dengan kartu Belanja tunai dan Transfer pemasok di sana
+ * untuk rentang yang sama. Asal angkanya ditulis di atas tabel.
  */
 abstract class ExpenseReport extends Page implements HasTable
 {
@@ -41,11 +41,27 @@ abstract class ExpenseReport extends Page implements HasTable
         return __('nav.group.reports');
     }
 
-    /** Penyaring yang membedakan satu laporan dari yang lain. */
-    abstract protected function scopeQuery(Builder $query): Builder;
+    /** Baris yang dilaporkan, sebelum saringan periode. */
+    abstract protected function baseQuery(): Builder;
 
-    /** Kolom tambahan khas laporan ini, disisipkan sebelum kolom jumlah. */
-    protected function extraColumns(): array
+    /** Kalimat asal angka, ditampilkan di atas tabel. */
+    abstract public function source(): string;
+
+    /** Kolom di antara tanggal dan jumlah. */
+    abstract protected function detailColumns(): array;
+
+    protected function dateColumn(): string
+    {
+        return 'date';
+    }
+
+    protected function amountColumn(): string
+    {
+        return 'total';
+    }
+
+    /** Kolom sesudah jumlah. */
+    protected function trailingColumns(): array
     {
         return [];
     }
@@ -58,26 +74,22 @@ abstract class ExpenseReport extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        $date = $this->dateColumn();
+
         return $table
-            ->query(fn () => $this->scopeQuery(Expense::query()->with('supplier', 'paidByOwner')))
-            ->defaultSort('spent_on', 'desc')
+            ->query(fn () => $this->baseQuery())
+            ->defaultSort($date, 'desc')
             ->columns([
-                TextColumn::make('spent_on')
+                TextColumn::make($date)
                     ->label(__('field.date'))
                     ->date('d/m/Y')
                     ->sortable(),
 
-                TextColumn::make('description')
-                    ->label(__('field.description'))
-                    ->description(fn (Expense $record) => $record->supplier?->name)
-                    ->searchable()
-                    ->wrap(),
+                ...$this->detailColumns(),
 
-                ...$this->extraColumns(),
-
-                TextColumn::make('amount')
+                TextColumn::make($this->amountColumn())
                     ->label(__('field.amount'))
-                    ->formatStateUsing(fn (int $state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state))
                     ->alignEnd()
                     ->sortable()
                     ->summarize(
@@ -86,9 +98,7 @@ abstract class ExpenseReport extends Page implements HasTable
                             ->formatStateUsing(fn ($state) => Money::format((int) $state))
                     ),
 
-                IconColumn::make('is_paid')
-                    ->label(__('field.is_paid'))
-                    ->boolean(),
+                ...$this->trailingColumns(),
             ])
             ->filters([
                 Filter::make('period')
@@ -97,8 +107,8 @@ abstract class ExpenseReport extends Page implements HasTable
                         DatePicker::make('until')->label(__('report.to'))->native(false),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn ($q, $date) => $q->whereDate('spent_on', '>=', $date))
-                        ->when($data['until'] ?? null, fn ($q, $date) => $q->whereDate('spent_on', '<=', $date)))
+                        ->when($data['from'] ?? null, fn ($q, $value) => $q->whereDate($date, '>=', $value))
+                        ->when($data['until'] ?? null, fn ($q, $value) => $q->whereDate($date, '<=', $value)))
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
 

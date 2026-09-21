@@ -183,6 +183,21 @@ class PayslipTest extends TestCase
         $this->assertSame('SlipGaji_Budi_Santoso_September_2026.pdf', $pdf->filename());
     }
 
+    public function test_pdf_slip_dibuka_di_tab_baru_hanya_untuk_super_admin(): void
+    {
+        $slip = $this->slip($this->employee());
+        $url = route('filament.admin.pdf.payslip', $slip);
+
+        $response = $this->actingAs($this->superAdmin())->get($url)->assertOk();
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline;', $response->headers->get('Content-Disposition'));
+
+        // Gaji per orang tidak untuk Admin.
+        $this->flushSession();
+        $this->actingAs($this->admin())->get($url)->assertForbidden();
+    }
+
     public function test_formulir_mengisi_gaji_pokok_dan_menyimpan_slip(): void
     {
         Filament::setCurrentPanel('admin');

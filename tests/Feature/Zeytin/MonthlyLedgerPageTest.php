@@ -100,14 +100,41 @@ class MonthlyLedgerPageTest extends TestCase
             ->assertFileDownloaded('zeytin-2026-08-01_2026-08-31.xlsx');
     }
 
-    public function test_unduhan_pdf_dibuat_dari_laporan_yang_tampil(): void
+    /**
+     * PDF dibuka di tab baru (inline), bukan diunduh diam-diam: tombol
+     * unduhan lama tidak menampilkan apa pun di layar, dan terlihat seperti
+     * tidak bekerja.
+     */
+    public function test_pdf_dibuka_di_tab_baru_dari_rentang_yang_tampil(): void
     {
         $this->income('2026-08-10', ['cash' => 5_000_000]);
 
-        Livewire::actingAs($this->admin())
-            ->test(MonthlyLedger::class, ['from' => '2026-08-01', 'to' => '2026-08-31', 'grouping' => 'monthly'])
-            ->call('exportPdf')
-            ->assertFileDownloaded('zeytin-monthly-2026-08-01_2026-08-31.pdf');
+        $page = Livewire::actingAs($this->admin())
+            ->test(MonthlyLedger::class, ['from' => '2026-08-01', 'to' => '2026-08-31', 'grouping' => 'monthly']);
+
+        $url = $page->instance()->pdfUrl();
+
+        $this->assertStringContainsString('from=2026-08-01', $url);
+        $this->assertStringContainsString('grouping=monthly', $url);
+
+        $response = $this->actingAs($this->admin())->get($url)->assertOk();
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline;', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('zeytin-monthly-2026-08-01_2026-08-31.pdf', $response->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_pdf_buku_besar_hanya_untuk_admin(): void
+    {
+        $url = route('filament.admin.pdf.ledger', ['from' => '2026-08-01', 'to' => '2026-08-31']);
+
+        $this->actingAs($this->superAdmin())->get($url)->assertForbidden();
+    }
+
+    public function test_pdf_buku_besar_meminta_masuk_dulu(): void
+    {
+        $this->get(route('filament.admin.pdf.ledger'))->assertRedirect(route('filament.admin.auth.login'));
     }
 
     public function test_pdf_memuat_angka_ringkasan_yang_sama_dengan_layar(): void

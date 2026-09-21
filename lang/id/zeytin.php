@@ -145,7 +145,7 @@ return [
     ],
 
     'pdf' => [
-        'download' => 'Unduh PDF',
+        'view' => 'Lihat PDF',
         'summary' => 'Ringkasan',
         'breakdown' => 'Rincian',
         'generated' => 'Dibuat',

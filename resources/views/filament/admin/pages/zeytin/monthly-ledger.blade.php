@@ -5,26 +5,7 @@
 @endphp
 
 <x-filament-panels::page>
-    {{-- Saringan periode --}}
-    <div class="filters">
-        <label class="filters__field">
-            <span class="pos__label">{{ __('report.from') }}</span>
-            <input type="date" wire:model.live="from" max="{{ $this->to }}">
-        </label>
-
-        <label class="filters__field">
-            <span class="pos__label">{{ __('report.to') }}</span>
-            <input type="date" wire:model.live="to" min="{{ $this->from }}">
-        </label>
-
-        <div class="filters__presets">
-            @foreach (['today', 'last_7', 'last_30', 'this_month', 'last_month', 'this_year', 'last_year'] as $preset)
-                <button type="button" class="pos__chip" wire:click="applyPreset('{{ $preset }}')">
-                    {{ __('report.preset.'.$preset) }}
-                </button>
-            @endforeach
-        </div>
-    </div>
+    <x-report-period :from="$this->from" :to="$this->to" />
 
     {{-- Harian, bulanan, tahunan: satu laporan digulung berbeda --}}
     <div class="filters">
@@ -43,9 +24,9 @@
                 {{ __('zeytin.export.download') }}
             </button>
 
-            <button type="button" class="pos__chip" wire:click="exportPdf">
-                {{ __('zeytin.pdf.download') }}
-            </button>
+            <a class="pos__chip" href="{{ $this->pdfUrl() }}" target="_blank" rel="noopener">
+                {{ __('zeytin.pdf.view') }}
+            </a>
 
             <button type="button" class="pos__chip" onclick="window.print()">
                 {{ __('report.print') }}

@@ -49,7 +49,7 @@ return [
     'action' => [
         'add_earning' => 'Add allowance',
         'add_deduction' => 'Add deduction',
-        'pdf' => 'Download PDF',
+        'pdf' => 'View PDF',
         'letterhead' => 'Letterhead & signatory',
     ],
 

@@ -3,8 +3,10 @@
 namespace App\Filament\Admin\Pages\Reports;
 
 use App\Enums\ExpenseCategory;
+use App\Models\Expense;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,8 +14,10 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * Pajak yang dicatat, baik yang sudah disetor maupun yang masih terutang.
  *
- * Yang belum dibayar sengaja ikut ditampilkan, karena justru itulah yang
- * perlu diketahui: angka yang sama muncul sebagai Utang Pajak di neraca.
+ * Masih membaca menu Pengeluaran (kategori Pajak): berkas Excel klien tidak
+ * punya sheet pajak, dan tempat mencatat pajak di Pembukuan Bulanan belum
+ * diputuskan. Layarnya menyebutkan itu, supaya angkanya tidak dikira bagian
+ * dari Buku Besar.
  */
 class Tax extends ExpenseReport
 {
@@ -31,19 +35,50 @@ class Tax extends ExpenseReport
         return __('nav.tax');
     }
 
-    protected function scopeQuery(Builder $query): Builder
+    public function source(): string
     {
-        return $query->where('category', ExpenseCategory::Tax);
+        return __('report.source.tax');
     }
 
-    protected function extraColumns(): array
+    protected function baseQuery(): Builder
+    {
+        return Expense::query()->with('supplier')->where('category', ExpenseCategory::Tax);
+    }
+
+    protected function dateColumn(): string
+    {
+        return 'spent_on';
+    }
+
+    protected function amountColumn(): string
+    {
+        return 'amount';
+    }
+
+    protected function detailColumns(): array
     {
         return [
+            TextColumn::make('description')
+                ->label(__('field.description'))
+                ->description(fn (Expense $record) => $record->supplier?->name)
+                ->searchable()
+                ->wrap(),
+
             TextColumn::make('method')->label(__('field.method'))->badge(),
+
             TextColumn::make('due_on')
                 ->label(__('field.due_on'))
                 ->date('d/m/Y')
                 ->placeholder('—'),
+        ];
+    }
+
+    protected function trailingColumns(): array
+    {
+        return [
+            IconColumn::make('is_paid')
+                ->label(__('field.is_paid'))
+                ->boolean(),
         ];
     }
 

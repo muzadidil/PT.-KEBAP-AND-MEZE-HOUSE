@@ -2,24 +2,41 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
-use App\Enums\ExpenseCategory;
+use App\Filament\Admin\Concerns\ForAdmin;
+use App\Filament\Admin\Pages\Reports\Concerns\HasPeriod;
+use App\Support\Money;
+use App\Support\Zeytin\DailyLedger;
 use BackedEnum;
+use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Computed;
+use UnitEnum;
 
 /**
- * Seluruh pembayaran gaji, baik gaji pegawai maupun gaji pemilik.
+ * Gaji per bulan — hanya totalnya.
  *
- * Gaji pemilik dikenali dari kolom "Ditalangi oleh" yang terisi: kalau
- * pemilik membayar dirinya sendiri dari kantong usaha, kolom itu kosong;
- * kalau ia menalangi gaji orang lain, kolomnya terisi namanya.
+ * Membaca Gaji di Penggajian, baris yang sama yang dijumlahkan Buku Besar.
+ * Gaji per orang tidak ditampilkan: itu hanya untuk Super Admin, sedangkan
+ * halaman ini milik Admin. Yang terlihat di sini jumlah orang dan total gaji
+ * tiap bulan, cukup untuk mencocokkan kartu Gaji di Buku Besar.
  */
-class Salary extends ExpenseReport
+class Salary extends Page
 {
+    use ForAdmin;
+    use HasPeriod;
+
     protected static ?int $navigationSort = 70;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
+
+    protected string $view = 'filament.admin.pages.reports.salary';
+
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return __('nav.group.reports');
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -31,20 +48,34 @@ class Salary extends ExpenseReport
         return __('nav.salary');
     }
 
-    protected function scopeQuery(Builder $query): Builder
+    protected static function defaultFrom(): Carbon
     {
-        return $query->where('category', ExpenseCategory::Salary);
+        return Carbon::today()->startOfYear();
     }
 
-    protected function extraColumns(): array
+    /** @return Collection<int, array{month: Carbon, people: int, total: int}> */
+    #[Computed]
+    public function rows(): Collection
     {
-        return [
-            TextColumn::make('method')->label(__('field.method'))->badge(),
-            TextColumn::make('paidByOwner.name')
-                ->label(__('field.paid_by_owner'))
-                ->placeholder('—')
-                ->badge()
-                ->color('warning'),
-        ];
+        return DailyLedger::payroll($this->fromDate(), $this->toDate())
+            ->selectRaw('month, COUNT(*) as people, SUM(grand_total) as total')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn ($row) => [
+                'month' => Carbon::parse($row->month),
+                'people' => (int) $row->people,
+                'total' => (int) $row->total,
+            ]);
+    }
+
+    protected function forget(): void
+    {
+        unset($this->rows);
+    }
+
+    public function money(?int $amount): string
+    {
+        return Money::format($amount);
     }
 }

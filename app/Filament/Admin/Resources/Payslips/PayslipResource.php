@@ -34,7 +34,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
 /**
@@ -279,20 +278,14 @@ class PayslipResource extends Resource
             ]);
     }
 
+    /** PDF slip dibuka di tab baru; lihat App\Http\Controllers\PdfController. */
     public static function pdfAction(): Action
     {
         return Action::make('pdf')
             ->label(__('payroll.action.pdf'))
-            ->icon(Heroicon::OutlinedArrowDownTray)
+            ->icon(Heroicon::OutlinedDocumentText)
             ->color('gray')
-            ->action(function (Payslip $record): StreamedResponse {
-                $pdf = new PayslipPdf($record);
-                $content = $pdf->render();
-
-                return response()->streamDownload(function () use ($content) {
-                    echo $content;
-                }, $pdf->filename(), ['Content-Type' => 'application/pdf']);
-            });
+            ->url(fn (Payslip $record) => route('filament.admin.pdf.payslip', $record), shouldOpenInNewTab: true);
     }
 
     public static function getPages(): array

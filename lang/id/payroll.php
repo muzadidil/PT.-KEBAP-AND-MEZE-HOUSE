@@ -49,7 +49,7 @@ return [
     'action' => [
         'add_earning' => 'Tambah tunjangan',
         'add_deduction' => 'Tambah potongan',
-        'pdf' => 'Unduh PDF',
+        'pdf' => 'Lihat PDF',
         'letterhead' => 'Kop & penandatangan',
     ],
 

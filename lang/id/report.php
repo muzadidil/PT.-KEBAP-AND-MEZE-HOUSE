@@ -13,11 +13,21 @@ return [
     'days' => 'Hari',
     'transactions' => 'Transaksi',
     'total' => 'Total',
-    'average_per_day' => 'Rata-rata per hari',
+    'average_per_recorded_day' => 'Rata-rata per hari tercatat',
+    'average_hint' => 'Dari :days hari yang ada catatan penjualannya.',
     'no_data' => 'Belum ada yang tercatat di periode ini.',
     'print' => 'Cetak',
     'source_bookkeeping' => 'Sumber: Pemasukan Harian di Pembukuan Bulanan — sama dengan Buku Besar Bulanan.',
     'open_ledger' => 'Buka Buku Besar untuk rentang ini',
+    'people' => 'Orang',
+
+    // Asal angka tiap laporan, ditulis di atas tabelnya.
+    'source' => [
+        'cash_expenses' => 'Sumber: Belanja Tunai di Pembukuan Bulanan — totalnya sama dengan Belanja tunai di Buku Besar untuk rentang yang sama.',
+        'online_transfers' => 'Sumber: Transfer Pemasok di Pembukuan Bulanan — totalnya sama dengan Transfer pemasok di Buku Besar untuk rentang yang sama.',
+        'salary' => 'Sumber: Gaji di Penggajian — sama dengan Gaji di Buku Besar. Hanya total per bulan; rincian per orang hanya untuk Super Admin.',
+        'tax' => 'Sumber: menu Pengeluaran, kategori Pajak. Belum termasuk di Buku Besar Bulanan.',
+    ],
     'export_csv' => 'Unduh CSV',
     'grand_total' => 'Total keseluruhan',
     'as_of' => 'Per tanggal',

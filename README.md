@@ -118,6 +118,24 @@ Akun bawaan seeder (**ganti sebelum dipakai sungguhan**):
 Seeder juga mengisi Aslan (60%) & Leo (40%), 24 menu Turki dalam dua bahasa,
 dan empat pemasok. Aman dijalankan ulang — semuanya `updateOrCreate`.
 
+### Kalau halamannya lambat atau berhenti di 30 detik
+
+Di Windows + XAMPP, PHP tanpa OPcache mengompilasi ulang ratusan berkas
+Laravel dan Filament di tiap permintaan, dan `php artisan serve` di Windows
+hanya melayani satu permintaan sekaligus. Galat `Maximum execution time of
+30 seconds exceeded` di log hampir selalu berarti itu, bukan fitur tertentu.
+
+Di `C:\xampp\php\php.ini`: hapus `;` di depan `zend_extension=opcache` dan
+`opcache.enable=1`, lalu naikkan `max_execution_time` ke `120`. Sesudah itu:
+
+```bash
+php artisan optimize
+php artisan filament:optimize
+```
+
+Setiap selesai `git pull`, jalankan `php artisan optimize:clear` lalu kedua
+perintah di atas lagi.
+
 Identitas usaha untuk kepala struk diisi lewat `.env`:
 
 ```
@@ -235,7 +253,9 @@ repo `Zeytin`) ke sini. Ketiga halamannya punya padanan:
 | Reports (harian/bulanan/tahunan/kustom, PDF, Excel) | Buku Besar Bulanan |
 
 PDF-nya mengikuti bentuk PDF aplikasi Zeytin: kop berwarna, ringkasan, lalu
-rincian dengan baris total. Kop suratnya diatur di `config/zeytin.php`
+rincian dengan baris total. Tombol **Lihat PDF** membukanya di tab baru
+(`App\Http\Controllers\PdfController`), bukan mengunduhnya diam-diam — dari
+penampil PDF peramban itulah berkasnya diunduh atau dicetak. Kop suratnya diatur di `config/zeytin.php`
 (`letterhead`), dan jam "dibuat" ditulis dalam WITA. Unduhan Excel memuat
 ringkasan, rincian harian/bulanan/tahunan, dan **catatan mentahnya** —
 belanja, transfer, gaji, tagihan — yang baris totalnya sama dengan angka di
@@ -246,8 +266,49 @@ bukan kerapian, tapi asal-usul: `sales` berisi transaksi per struk dari mesin
 kasir, sedangkan sheet Income berisi satu baris rekap per hari per channel
 yang ditulis tangan. Meleburnya berarti satu hari penjualan bisa terhitung
 dua kali — sekali dari struk, sekali dari rekap — dan tidak ada cara
-membedakannya setelah tercampur. Laporan kasir yang sudah ada tidak berubah
-sedikit pun.
+membedakannya setelah tercampur.
+
+### Satu sumber angka untuk laporan
+
+Kasir belum dipakai sungguhan, jadi **pembukuan adalah satu-satunya sumber
+angka laporan**. Dulu Penjualan Tahunan membaca transaksi kasir dan Buku
+Besar membaca Pemasukan Harian — Agustus yang sama tampil 95 juta di satu
+halaman dan 280 juta di halaman lain.
+
+| Laporan | Membaca |
+|---|---|
+| Penjualan Harian / Mingguan / Bulanan / Tahunan | Pemasukan Harian, lewat `DailyLedger` — mesin yang sama dengan Buku Besar |
+| Pengeluaran Tunai | Belanja Tunai |
+| Transfer Online | Transfer Pemasok |
+| Gaji | Gaji di Penggajian — **hanya total per bulan** untuk Admin |
+| Dasbor Admin | Buku Besar bulan berjalan (kartu transaksi kasir dihapus) |
+| Pajak, Pengeluaran Pemilik, Neraca | **masih** menu Pengeluaran & Modal Pemilik — lihat Yang belum dikerjakan |
+
+Tiap laporan menulis sumbernya di atas tabelnya, dan kartu Total pengeluaran
+merinci Belanja tunai, Transfer pemasok, dan Gaji. Rata-rata per hari dibagi
+**hari yang tercatat**, bukan seluruh hari di rentang: Penjualan Tahunan
+membuka lima tahun, dan 280 juta dibagi 1.725 hari bukan angka yang berarti.
+
+Rentang tanggal (Dari–Sampai dan tombol presetnya) ditulis sekali di
+`Reports\Concerns\HasPeriod` dan komponen `<x-report-period>`, dipakai Buku
+Besar maupun laporan, jadi "Tahun lalu" berarti hal yang sama di mana pun.
+
+### Membetulkan baris yang salah tanggal
+
+Di berkas Agustus, satu sel belanja diketik `18/8/2028` dan bulan gaji
+dipilih Agustus 2025. Angkanya benar tapi jatuh di periode yang salah, jadi
+belanja 464.000 dan gaji 31,4 juta hilang dari laporan Agustus 2026.
+
+```bash
+php artisan zeytin:pindah belanja 2028-08-18 2026-08-18
+php artisan zeytin:pindah gaji 2025-08 2026-08
+```
+
+Jenisnya `pemasukan`, `belanja`, `transfer`, `tagihan`, atau `gaji`.
+Perintahnya menampilkan baris yang akan dipindah dan bertanya dulu. Nomor
+impornya ikut dihitung ulang dengan rumus pengimpor, jadi hasilnya sama
+dengan mengimpor berkas yang selnya sudah dibetulkan: mengimpor ulang berkas
+yang benar sesudahnya **tidak menggandakan** apa pun.
 
 ### Konsep yang dipertahankan dari berkas Excel
 
@@ -435,7 +496,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**240 tes, 1.168 asersi, semuanya lolos** (diverifikasi 21 September 2026).
+**253 tes, 1.225 asersi, semuanya lolos** (diverifikasi 21 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -511,6 +572,13 @@ Dan untuk penggajian:
 
 ## Yang belum dikerjakan
 
+- **Pajak, Pengeluaran Pemilik (60/40), dan Neraca masih membaca menu
+  Pengeluaran dan transaksi kasir**, belum pembukuan. Memindahkannya butuh
+  tiga keputusan akuntansi: gaji dibayar dari kas tunai atau rekening;
+  transfer pemasok tanpa status dianggap dibayar siapa; dan pajak, Telkom,
+  WiFi dicatat di mana (usulnya: baris Transfer Pemasok, dengan kategori di
+  master Barang Belanja, sehingga menu Pengeluaran bisa dipensiunkan).
+  Halaman Pajak sudah menyebut sumbernya di layar.
 - **Sheet Payroll diimpor sebagian** — nama, gaji pokok, potongan BPJS, dan
   totalnya. Kolom jam kerja, lembur, dan sisa cuti belum ikut.
 - **Lampiran foto nota** pada pengeluaran. Tabelnya sudah punya kolom

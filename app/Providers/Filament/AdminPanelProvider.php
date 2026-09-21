@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
 use App\Filament\Support\LanguageSwitcher;
+use App\Http\Controllers\PdfController;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -19,6 +20,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -62,6 +64,11 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
+            // PDF yang dibuka di tab baru; lihat App\Http\Controllers\PdfController.
+            ->authenticatedRoutes(function () {
+                Route::get('pdf/buku-besar', [PdfController::class, 'ledger'])->name('pdf.ledger');
+                Route::get('pdf/slip-gaji/{payslip}', [PdfController::class, 'payslip'])->name('pdf.payslip');
+            })
             ->userMenuItems(LanguageSwitcher::menuItems())
             ->middleware([
                 EncryptCookies::class,
