@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
-use App\Support\Ledger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -31,9 +30,14 @@ class DailySales extends SalesReport
         return Carbon::today()->subDays(13);
     }
 
-    protected function buildRows(Carbon $from, Carbon $to): Collection
+    protected function group(Collection $days): Collection
     {
-        return Ledger::daily($from, $to);
+        return $days;
+    }
+
+    public function isDaily(): bool
+    {
+        return true;
     }
 
     public function periodLabel(array $row): string

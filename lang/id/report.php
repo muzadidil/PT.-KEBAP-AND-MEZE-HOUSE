@@ -16,6 +16,8 @@ return [
     'average_per_day' => 'Rata-rata per hari',
     'no_data' => 'Belum ada yang tercatat di periode ini.',
     'print' => 'Cetak',
+    'source_bookkeeping' => 'Sumber: Pemasukan Harian di Pembukuan Bulanan — sama dengan Buku Besar Bulanan.',
+    'open_ledger' => 'Buka Buku Besar untuk rentang ini',
     'export_csv' => 'Unduh CSV',
     'grand_total' => 'Total keseluruhan',
     'as_of' => 'Per tanggal',

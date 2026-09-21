@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
-use App\Support\Ledger;
+use App\Support\Zeytin\DailyLedger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -25,9 +25,9 @@ class YearlySales extends SalesReport
         return Carbon::today()->subYears(4)->startOfYear();
     }
 
-    protected function buildRows(Carbon $from, Carbon $to): Collection
+    protected function group(Collection $days): Collection
     {
-        return Ledger::yearly($from, $to);
+        return DailyLedger::groupByYear($days);
     }
 
     public function periodLabel(array $row): string

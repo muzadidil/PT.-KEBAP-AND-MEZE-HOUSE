@@ -269,14 +269,33 @@ class DailyLedger
     }
 
     /**
-     * Baris harian digulung ke bulan. Bulan tanpa catatan tidak ditampilkan.
+     * Baris harian digulung per minggu ISO (Senin–Minggu).
+     *
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function groupByWeek(Collection $rows): Collection
+    {
+        return static::rollUp($rows, fn (Carbon $date) => [
+            $date->isoFormat('GGGG-[W]WW'),
+            $date->copy()->startOfWeek(),
+            $date->copy()->endOfWeek()->startOfDay(),
+        ]);
+    }
+
+    /**
+     * Baris harian digulung ke bulan.
      *
      * @param  Collection<int, array<string, mixed>>  $rows
      * @return Collection<int, array<string, mixed>>
      */
     public static function groupByMonth(Collection $rows): Collection
     {
-        return static::rollUp($rows, fn (Carbon $date) => $date->format('Y-m'));
+        return static::rollUp($rows, fn (Carbon $date) => [
+            $date->format('Y-m'),
+            $date->copy()->startOfMonth(),
+            $date->copy()->endOfMonth()->startOfDay(),
+        ]);
     }
 
     /**
@@ -285,15 +304,26 @@ class DailyLedger
      */
     public static function groupByYear(Collection $rows): Collection
     {
-        return static::rollUp($rows, fn (Carbon $date) => $date->format('Y'));
+        return static::rollUp($rows, fn (Carbon $date) => [
+            $date->format('Y'),
+            $date->copy()->startOfYear(),
+            $date->copy()->endOfYear()->startOfDay(),
+        ]);
     }
 
     /**
+     * Menjumlahkan baris harian ke periode yang lebih besar.
+     *
+     * Periode yang masuk rentang tetap muncul walau tanpa catatan: bulan
+     * yang lupa diisi harus terlihat sebagai nol, bukan hilang dari daftar.
+     * Kolom `days` dan `recorded_days` menunjukkan berapa hari yang benar-
+     * benar tercatat di tiap periode.
+     *
      * @param  Collection<int, array<string, mixed>>  $rows
-     * @param  callable(Carbon): string  $keyOf
+     * @param  callable(Carbon): array{0: string, 1: Carbon, 2: Carbon}  $bucketOf  kunci, awal, akhir
      * @return Collection<int, array<string, mixed>>
      */
-    protected static function rollUp(Collection $rows, callable $keyOf): Collection
+    protected static function rollUp(Collection $rows, callable $bucketOf): Collection
     {
         $buckets = [];
 
@@ -302,9 +332,9 @@ class DailyLedger
                 continue;
             }
 
-            $key = $keyOf($row['date']);
+            [$key, $start, $end] = $bucketOf($row['date']);
 
-            $buckets[$key] ??= ['key' => $key, 'days' => 0, 'recorded_days' => 0] + static::blankTotals();
+            $buckets[$key] ??= ['key' => $key, 'start' => $start, 'end' => $end, 'days' => 0, 'recorded_days' => 0] + static::blankTotals();
 
             $buckets[$key]['days']++;
 

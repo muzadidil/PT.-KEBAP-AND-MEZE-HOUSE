@@ -16,6 +16,8 @@ return [
     'average_per_day' => 'Average per day',
     'no_data' => 'Nothing recorded in this period.',
     'print' => 'Print',
+    'source_bookkeeping' => 'Source: Daily Income in Monthly Bookkeeping — the same as the Monthly Ledger.',
+    'open_ledger' => 'Open the ledger for this range',
     'export_csv' => 'Download CSV',
     'grand_total' => 'Grand total',
     'as_of' => 'As of',

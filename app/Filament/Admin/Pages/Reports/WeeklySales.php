@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Pages\Reports;
 
-use App\Support\Ledger;
+use App\Support\Zeytin\DailyLedger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -25,9 +25,9 @@ class WeeklySales extends SalesReport
         return Carbon::today()->subWeeks(11)->startOfWeek();
     }
 
-    protected function buildRows(Carbon $from, Carbon $to): Collection
+    protected function group(Collection $days): Collection
     {
-        return Ledger::weekly($from, $to);
+        return DailyLedger::groupByWeek($days);
     }
 
     public function periodLabel(array $row): string
