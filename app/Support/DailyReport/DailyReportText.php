@@ -8,9 +8,14 @@ use Illuminate\Support\Carbon;
 
 /**
  * Satu Daily Report sebagai pesan WhatsApp, meniru contoh laporan tim
- * persis: judul dan tanggal tebal, bagian utama (Sales, Operation, …)
- * tebal dan bernomor, sub-catatannya poin biasa dengan nominal opsional
- * di ujungnya.
+ * persis: judul dan tanggal tebal, bagian utama tebal, bernomor, dan
+ * berikon; poin di bawahnya ditulis sesuai jenisnya:
+ *
+ *   text    • Supplier datang terlambat Rp 250.000   (nominal kalau diisi)
+ *   choice  • 🟢 Good                                 (pilihan bagian itu)
+ *   number  • Total Reviews: 56                      ("-" kalau kosong)
+ *   rating  • Rating: ⭐ 4.9
+ *   status  • Salon agreement ⏳ Pending
  *
  * Tulisan tebal/miring/coret yang diketik sendiri di dalam catatan (mis.
  * "~sudah batal~") tidak disentuh — teksnya dikirim apa adanya, jadi format
@@ -42,8 +47,22 @@ class DailyReportText
         }
 
         foreach ($top as $i => $note) {
+            $icon = $note->icon ? $note->icon.' ' : '';
+
             $lines[] = '';
-            $lines[] = '*'.($i + 1).'. '.mb_strtoupper($note->text).'*'.$this->suffix($note);
+
+            // Isi bagian pilihan ditulis sebagai poin pertamanya, bukan di
+            // judul: judul bagian tetap bersih dan tebal seluruhnya.
+            if ($note->kind === 'choice') {
+                $lines[] = '*'.($i + 1).'. '.$icon.mb_strtoupper($note->text).'*';
+                $lines[] = '• '.($note->option?->display() ?? '-');
+            } else {
+                // Bagian angka/status tidak punya isian sendiri — isiannya
+                // di poin-poinnya. Hanya bagian catatan yang boleh bernominal.
+                $suffix = $note->kind === 'text' ? $this->detail($note) : '';
+                $lines[] = '*'.($i + 1).'. '.$icon.mb_strtoupper($note->text).'*'.$suffix;
+            }
+
             $this->children($note, 0, $lines);
         }
 
@@ -60,13 +79,19 @@ class DailyReportText
     {
         foreach ($this->board->children($note) as $child) {
             $bullet = $depth === 0 ? '•' : '◦';
-            $lines[] = str_repeat('   ', $depth).$bullet.' '.$child->text.$this->suffix($child);
+            $lines[] = str_repeat('   ', $depth).$bullet.' '.$child->text.$this->detail($child);
             $this->children($child, $depth + 1, $lines);
         }
     }
 
-    protected function suffix(DailyNote $note): string
+    /** Isi di belakang teks catatan, sesuai jenisnya. */
+    protected function detail(DailyNote $note): string
     {
-        return $note->nominal !== null ? ' '.Money::format($note->nominal) : '';
+        return match ($note->kind) {
+            'number' => ': '.($note->formattedValue() ?? '-'),
+            'rating' => ': '.(($value = $note->formattedValue()) !== null ? '⭐ '.$value : '-'),
+            'status' => $note->option ? ' '.$note->option->display() : '',
+            default => $note->nominal !== null ? ' '.Money::format($note->nominal) : '',
+        };
     }
 }

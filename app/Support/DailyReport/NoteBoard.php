@@ -24,7 +24,7 @@ class NoteBoard
 
     public static function load(Carbon $date): static
     {
-        return new static(DailyNote::query()->whereDate('date', $date)->orderBy('id')->get());
+        return new static(DailyNote::query()->with('option')->whereDate('date', $date)->orderBy('id')->get());
     }
 
     /** @return Collection<int, DailyNote> */

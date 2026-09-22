@@ -4,6 +4,7 @@ namespace Tests\Feature\DailyReport;
 
 use App\Filament\Admin\Pages\DailyReport;
 use App\Models\DailyNote;
+use App\Models\DailyReportOption;
 use App\Support\DailyReport\DailyReportText;
 use App\Support\DailyReport\NoteBoard;
 use App\Support\DailyReport\NoteTemplate;
@@ -129,14 +130,14 @@ class DailyReportPageTest extends TestCase
     {
         $page = Livewire::actingAs($this->admin())->test(DailyReport::class)->call('fillTemplate');
 
-        $this->assertSame(7, DailyNote::whereNull('parent_id')->count());
+        $this->assertSame(6, DailyNote::whereNull('parent_id')->count());
         $this->assertGreaterThan(0, DailyNote::whereNotNull('parent_id')->count());
 
-        $page->assertSee(__('daily_report.template.sales'))->assertSee(__('daily_report.template.plan'));
+        $page->assertSee(__('daily_report.template.operation'))->assertSee(__('daily_report.template.plan'));
 
         // Sudah ada isinya: klik lagi tidak menggandakan.
         $page->call('fillTemplate');
-        $this->assertSame(7, DailyNote::whereNull('parent_id')->count());
+        $this->assertSame(6, DailyNote::whereNull('parent_id')->count());
     }
 
     /* ------------------------------------------------------------- bagikan */
@@ -203,9 +204,163 @@ class DailyReportPageTest extends TestCase
         NoteTemplate::apply(Carbon::parse('2026-09-22'));
 
         $board = NoteBoard::load(Carbon::parse('2026-09-22'));
-        $sales = $board->topLevel()->firstWhere('text', __('daily_report.template.sales'));
+        $reviews = $board->topLevel()->firstWhere('text', __('daily_report.template.reviews'));
 
-        $this->assertNotNull($sales);
-        $this->assertCount(2, $board->children($sales));
+        $this->assertNotNull($reviews);
+        $this->assertCount(6, $board->children($reviews));
+    }
+
+    /* -------------------------------------------------------- jenis isian */
+
+    protected function option(string $group, string $label): DailyReportOption
+    {
+        return DailyReportOption::where('group', $group)->where('label', $label)->sole();
+    }
+
+    /** Contoh laporan tim persis: pilihan, angka, rating bintang, status. */
+    public function test_format_whatsapp_mengikuti_jenis_isian(): void
+    {
+        NoteTemplate::apply(Carbon::parse('2026-09-22'));
+
+        $operation = DailyNote::where('text', 'Operation')->sole();
+        $operation->update(['option_id' => $this->option('condition', 'Good')->id]);
+
+        DailyNote::where('text', 'Rating')->update(['value' => 4.9]);
+        DailyNote::where('text', 'Total Reviews')->update(['value' => 56]);
+
+        $task = DailyNote::where('text', 'Task/Work Update')->sole();
+        $this->note('Salon agreement', ['parent_id' => $task->id, 'kind' => 'status', 'option_id' => $this->option('status', 'Pending')->id]);
+        $this->note('Add CCTV Zeytin', ['parent_id' => $task->id, 'kind' => 'status']);
+
+        $this->app->setLocale('en');
+
+        $expected = implode("\n", [
+            '*DAILY REPORT – ZEYTIN*',
+            '📅 *Date:* 22 Sep 2026',
+            '',
+            '*1. ⚙️ OPERATION*',
+            '• 🟢 Good',
+            '',
+            '*2. 👥 STAFF ISSUE*',
+            '',
+            '*3. ⭐ GOOGLE REVIEWS*',
+            '• Rating: ⭐ 4.9',
+            '• Total Reviews: 56',
+            '• New Reviews: -',
+            '• Replied: -',
+            '• Negative Reviews: -',
+            '• Follow Up: -',
+            '',
+            '*4. 📋 TASK/WORK UPDATE*',
+            '• Salon agreement ⏳ Pending',
+            '• Add CCTV Zeytin',
+            '',
+            '*5. 📌 IMPORTANT NOTES*',
+            '',
+            '*6. 🗓️ PLAN/FOLLOW UP*',
+        ]);
+
+        $this->assertSame($expected, DailyReportText::make(Carbon::parse('2026-09-22'))->whatsapp());
+    }
+
+    public function test_memilih_kondisi_dan_status_dari_master(): void
+    {
+        NoteTemplate::apply(Carbon::parse('2026-09-22'));
+
+        $operation = DailyNote::where('text', 'Operation')->sole();
+        $task = DailyNote::where('text', 'Task/Work Update')->sole();
+        $problem = $this->option('condition', 'Problem');
+        $finish = $this->option('status', 'Finish');
+
+        $page = Livewire::actingAs($this->admin())->test(DailyReport::class)
+            ->call('setOption', $operation->id, (string) $problem->id);
+
+        $this->assertSame($problem->id, $operation->fresh()->option_id);
+
+        // Status bukan pilihan kondisi: tidak boleh dipasang di bagian Operation.
+        $page->call('setOption', $operation->id, (string) $finish->id);
+        $this->assertNull($operation->fresh()->option_id);
+
+        // Poin baru di bawah bagian Status ikut jenis status, dengan statusnya.
+        $page->set("subDraft.{$task->id}.text", 'Sign board cube survey')
+            ->set("subDraft.{$task->id}.option_id", (string) $finish->id)
+            ->call('addSub', $task->id);
+
+        $sub = DailyNote::where('parent_id', $task->id)->sole();
+        $this->assertSame('status', $sub->kind);
+        $this->assertSame($finish->id, $sub->option_id);
+    }
+
+    public function test_angka_dan_rating_bukan_nominal(): void
+    {
+        NoteTemplate::apply(Carbon::parse('2026-09-22'));
+
+        $rating = DailyNote::where('text', 'Rating')->sole();
+        $total = DailyNote::where('text', 'Total Reviews')->sole();
+        $reviews = DailyNote::where('text', 'Google Reviews')->sole();
+
+        $page = Livewire::actingAs($this->admin())->test(DailyReport::class)
+            ->call('setValue', $rating->id, '4,9')
+            ->call('setValue', $total->id, '1.200');
+
+        $this->assertSame(4.9, $rating->fresh()->value);
+        $this->assertSame(1200.0, $total->fresh()->value);
+
+        // Rating dibatasi 0–5; klik bintang ke-1 memberi nilai 1.
+        $page->call('setValue', $rating->id, '9');
+        $this->assertSame(5.0, $rating->fresh()->value);
+
+        $page->call('setValue', $rating->id, 1);
+        $this->assertSame('1', $rating->fresh()->formattedValue());
+
+        // Poin baru di bawah bagian angka juga angka, bukan nominal.
+        $page->set("subDraft.{$reviews->id}.text", 'Photos')
+            ->set("subDraft.{$reviews->id}.value", '12')
+            ->call('addSub', $reviews->id);
+
+        $photos = DailyNote::where('text', 'Photos')->sole();
+        $this->assertSame('number', $photos->kind);
+        $this->assertSame(12.0, $photos->value);
+        $this->assertNull($photos->nominal);
+    }
+
+    public function test_bagian_baru_bisa_dipilih_jenis_dan_ikonnya(): void
+    {
+        Livewire::actingAs($this->admin())->test(DailyReport::class)
+            ->set('draft.text', 'Kitchen')
+            ->set('draft.kind', 'choice')
+            ->set('draft.icon', '🍳')
+            ->call('addNote')
+            ->assertHasNoErrors();
+
+        $section = DailyNote::sole();
+        $this->assertSame('choice', $section->kind);
+        $this->assertSame('🍳', $section->icon);
+    }
+
+    public function test_master_pilihan_ditambah_diubah_dan_dihapus(): void
+    {
+        $page = Livewire::actingAs($this->admin())->test(DailyReport::class)
+            ->set('newOption.status.label', 'Cancelled')
+            ->set('newOption.status.icon', '❌')
+            ->call('addOption', 'status')
+            ->assertHasNoErrors();
+
+        $cancelled = $this->option('status', 'Cancelled');
+        $this->assertSame('❌ Cancelled', $cancelled->display());
+
+        $page->call('startOptionEdit', $cancelled->id)
+            ->set('optionEdit.label', 'Batal')
+            ->call('saveOption');
+
+        $this->assertSame('Batal', $cancelled->fresh()->label);
+
+        // Catatan yang memakainya tetap ada, hanya jadi belum dipilih.
+        $note = $this->note('Salon agreement', ['kind' => 'status', 'option_id' => $cancelled->id]);
+
+        $page->call('deleteOption', $cancelled->id);
+
+        $this->assertNull($note->fresh()->option_id);
+        $this->assertFalse(DailyReportOption::whereKey($cancelled->id)->exists());
     }
 }

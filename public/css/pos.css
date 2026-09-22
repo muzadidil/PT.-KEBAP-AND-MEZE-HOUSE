@@ -532,31 +532,6 @@
  * terpotong begitu saja. Hurufnya dikecilkan supaya pembukuan bulanan yang
  * sebelas kolom tetap muat di kertas tegak.
  */
-@media print {
-    .report__wrap {
-        overflow: visible;
-    }
-
-    .report {
-        font-size: 8pt;
-    }
-
-    .report th,
-    .report td {
-        padding: .25rem .375rem;
-    }
-
-    .report th,
-    .report th.num {
-        font-size: 7pt;
-        letter-spacing: 0;
-        white-space: normal;
-    }
-
-    .report tr {
-        break-inside: avoid;
-    }
-}
 
 /* ---------- kartu ringkasan ---------- */
 
@@ -712,14 +687,6 @@
     margin-left: auto;
 }
 
-@media print {
-    .filters,
-    .fi-sidebar,
-    .fi-topbar,
-    .fi-header {
-        display: none !important;
-    }
-}
 
 /* ---------- pembukuan bulanan ---------- */
 
@@ -1084,6 +1051,110 @@
     padding: .375rem 0;
 }
 
+.note-form__icon {
+    flex: 0 0 4.5rem;
+}
+
+.note-form__kind {
+    flex: 0 0 9rem;
+}
+
+.note-item__icon {
+    margin-right: .25rem;
+}
+
+.note-item__kind {
+    display: inline-flex;
+    margin-left: .375rem;
+    vertical-align: middle;
+}
+
+.note-item__select {
+    flex: 0 0 12rem;
+}
+
+.note-item__value {
+    flex: 0 0 6rem;
+}
+
+.note-item__value input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Rating: klik bintang ke-n untuk memberi nilai n; isian di sebelahnya untuk 4,9. */
+.note-stars {
+    display: inline-flex;
+    flex: none;
+    gap: .125rem;
+}
+
+.note-stars__star {
+    padding: 0 .0625rem;
+    border: 0;
+    background: none;
+    color: var(--pos-border);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.note-stars__star.is-on {
+    color: var(--pos-accent);
+}
+
+.note-stars__star:hover {
+    color: var(--pos-accent);
+    opacity: .75;
+}
+
+/* Master pilihan: dua daftar berdampingan */
+.note-master {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 1rem;
+}
+
+.note-master__title {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+}
+
+.note-master__title-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.note-master__heading {
+    padding-bottom: .375rem;
+    margin-bottom: .25rem;
+    border-bottom: 1px solid var(--pos-border);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--pos-text-muted);
+}
+
+.note-master__row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .25rem 0;
+    border-bottom: 1px dashed var(--pos-border);
+}
+
+.note-master__label {
+    flex: 1;
+    min-width: 0;
+    color: var(--pos-text);
+}
+
+.note-master__add {
+    margin-top: .5rem;
+}
+
 .note-item__children {
     margin-top: .25rem;
     margin-left: .1875rem;
@@ -1093,4 +1164,260 @@
 
 [x-cloak] {
     display: none !important;
+}
+
+/* ---------- hasil cetak ---------- */
+
+/*
+ * Cetak dari peramban: A4 tegak, berkop perusahaan, hitam di atas putih.
+ * Yang tercetak hanya isi laporannya — menu, tombol, isian tanggal, dan
+ * formulir disembunyikan, kartu dan tabel ditulis ulang bergaya laporan
+ * keuangan: garis tipis, tanpa bayangan, total bergaris ganda.
+ * Struk kasir punya aturan cetaknya sendiri di bagian struk.
+ */
+.print-head,
+.print-only {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 14mm 12mm 14mm;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+        color: #111827 !important;
+        font-size: 9pt;
+    }
+
+    /* Kerangka aplikasi */
+    .fi-sidebar,
+    .fi-sidebar-close-overlay,
+    .fi-topbar,
+    .fi-layout-sidebar-toggle-btn-ctn,
+    .fi-breadcrumbs,
+    .fi-header-actions-ctn,
+    .fi-header-subheading,
+    .fi-page-header-widgets,
+    .fi-footer,
+    .fi-no-notification,
+    .fi-notifications {
+        display: none !important;
+    }
+
+    .fi-main-ctn,
+    .fi-main,
+    .fi-page,
+    .fi-page-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+    }
+
+    .fi-page-content {
+        row-gap: 10pt !important;
+    }
+
+    /* Kop */
+    .print-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12pt;
+        padding-bottom: 6pt;
+        margin-bottom: 10pt;
+        border-bottom: 1.5pt solid #4d7c0f;
+    }
+
+    .print-head__brand {
+        font-size: 18pt;
+        font-weight: 800;
+        line-height: 1;
+        color: #4d7c0f;
+    }
+
+    .print-head__legal {
+        margin-top: 4pt;
+        font-size: 8.5pt;
+        font-weight: 700;
+    }
+
+    .print-head__address,
+    .print-head__meta {
+        font-size: 7pt;
+        color: #6b7280;
+    }
+
+    .print-head__meta {
+        text-align: right;
+        line-height: 1.5;
+    }
+
+    .fi-header {
+        margin: 0 !important;
+    }
+
+    .fi-header-heading {
+        font-size: 14pt !important;
+        line-height: 1.2 !important;
+        color: #111827 !important;
+    }
+
+    /* Yang hanya berguna di layar */
+    .filters,
+    .pos__chip,
+    .fi-btn,
+    .fi-icon-btn,
+    .fi-tabs,
+    .report__note a,
+    .meeting__toolbar,
+    .meeting__panel,
+    .meeting__projects,
+    .meeting__row,
+    .meeting-task__actions,
+    .meeting-sub__actions,
+    .meeting-sub__add,
+    .note-item__actions,
+    .note-item__add {
+        display: none !important;
+    }
+
+    .report__note {
+        font-size: 7pt;
+        max-width: none;
+    }
+
+    /* Kartu ringkasan: kotak bergaris tipis, empat sejajar */
+    .stats {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6pt;
+        margin-bottom: 10pt;
+    }
+
+    .stat,
+    .meeting-task {
+        padding: 6pt 8pt;
+        border: .5pt solid #d1d5db !important;
+        border-top: 2pt solid #4d7c0f !important;
+        border-radius: 0;
+        background: #fff !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .meeting-task {
+        border-top-width: .5pt !important;
+    }
+
+    .stat__label {
+        font-size: 6.5pt;
+        color: #6b7280;
+    }
+
+    .stat__value {
+        font-size: 11pt;
+        color: #111827;
+    }
+
+    .stat__hint {
+        font-size: 6.5pt;
+    }
+
+    /* Tabel bergaya laporan keuangan */
+    .report__wrap,
+    .sheet__section {
+        overflow: visible;
+        border: 0 !important;
+        border-radius: 0;
+        background: #fff !important;
+    }
+
+    .report {
+        font-size: 7.5pt;
+        color: #111827;
+    }
+
+    .report th,
+    .report td {
+        padding: 3pt 4pt;
+        border-bottom: .5pt solid #e5e7eb;
+        background: #fff !important;
+    }
+
+    .report th,
+    .report th.num {
+        font-size: 6.5pt;
+        letter-spacing: .02em;
+        white-space: normal;
+        color: #374151;
+        border-bottom: 1pt solid #4d7c0f;
+        vertical-align: bottom;
+    }
+
+    .report th:first-child,
+    .report td:first-child {
+        padding-left: 0;
+    }
+
+    .report th:last-child,
+    .report td:last-child {
+        padding-right: 0;
+    }
+
+    .report thead {
+        display: table-header-group;
+    }
+
+    /* Total hanya sekali di akhir; kalau diulang di tiap halaman, total di
+       halaman 1 terbaca seolah jumlah sampai baris itu saja. */
+    .report tfoot {
+        display: table-row-group;
+    }
+
+    .report tr {
+        break-inside: avoid;
+    }
+
+    .report tfoot td {
+        border-top: .75pt solid #111827;
+        border-bottom: 2pt double #111827;
+    }
+
+    .report__badge {
+        border-color: #d1d5db;
+    }
+
+    .sheet__title {
+        padding: 0 0 3pt;
+        background: #fff !important;
+        border-bottom: 1pt solid #4d7c0f;
+    }
+
+    .sheet__row {
+        padding: 3pt 0;
+    }
+
+    .print-only {
+        display: block;
+    }
+
+    .note-print-date {
+        margin: 0;
+        font-size: 9pt;
+        font-weight: 600;
+    }
+
+    /* Daily Report & Progres Rapat: daftar biasa */
+    .note-item__nominal-badge {
+        padding: 0;
+        background: none;
+    }
+
+    .note-item__children {
+        border-left-color: #d1d5db;
+    }
 }
