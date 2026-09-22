@@ -4,6 +4,12 @@
 --}}
 @props(['from', 'to'])
 
+{{-- Isian tanggal tidak ikut tercetak, jadi periodenya ditulis ulang untuk kertas --}}
+<p class="print-only note-print-date">
+    {{ __('report.period') }}:
+    {{ \Illuminate\Support\Carbon::parse($from)->translatedFormat('j M Y') }} – {{ \Illuminate\Support\Carbon::parse($to)->translatedFormat('j M Y') }}
+</p>
+
 <div class="filters">
     <label class="filters__field">
         <span class="pos__label">{{ __('report.from') }}</span>

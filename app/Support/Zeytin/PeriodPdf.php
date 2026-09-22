@@ -77,7 +77,7 @@ class PeriodPdf
                 $text = __('zeytin.pdf.page_of', ['page' => $page, 'pages' => $pages]);
                 $width = $metrics->getTextWidth($text, $font, 6.5);
 
-                $canvas->text($canvas->get_width() - 40 - $width, $canvas->get_height() - 50, $text, $font, 6.5, [0.42, 0.45, 0.5]);
+                $canvas->text($canvas->get_width() - 40 - $width, $canvas->get_height() - 40, $text, $font, 6.5, [0.42, 0.45, 0.5]);
             },
         );
 

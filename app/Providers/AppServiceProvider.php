@@ -51,6 +51,18 @@ class AppServiceProvider extends ServiceProvider
         | Melepas kelas .dark sekaligus membalikkan warna Filament sendiri,
         | yang tidak bisa dijangkau dari pos.css.
         */
+        /*
+        | Kop perusahaan yang hanya muncul di kertas. Tanpa ini hasil Cetak
+        | cuma potongan layar aplikasi: tidak ada nama perusahaan, alamat,
+        | maupun kapan laporannya dicetak.
+        */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::CONTENT_START,
+            fn (): string => view('filament.print-letterhead', [
+                'letterhead' => config('zeytin.letterhead'),
+            ])->render(),
+        );
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn (): string => <<<'HTML'
@@ -62,6 +74,12 @@ class AppServiceProvider extends ServiceProvider
                         window.addEventListener('beforeprint', () => {
                             wasDark = root.classList.contains('dark');
                             root.classList.remove('dark');
+
+                            // Jam cetak, bukan jam halaman dibuka.
+                            const stamp = new Date().toLocaleString(root.lang || undefined, {
+                                day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                            });
+                            document.querySelectorAll('[data-print-time]').forEach((el) => el.textContent = stamp);
                         });
 
                         window.addEventListener('afterprint', () => {

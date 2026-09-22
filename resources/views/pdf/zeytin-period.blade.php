@@ -66,10 +66,10 @@
 
         .head {
             position: fixed;
-            top: -70pt;
+            top: -80pt;
             left: 0;
             right: 0;
-            height: 46pt;
+            height: 56pt;
             border-bottom: 1.5pt solid #4d7c0f;
         }
         .head table { width: 100%; }

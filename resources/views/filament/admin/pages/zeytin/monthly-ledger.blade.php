@@ -5,13 +5,6 @@
 @endphp
 
 <x-filament-panels::page>
-    {{-- Sebelas kolom tidak muat di kertas tegak; kolom terakhir terpotong --}}
-    <style>
-        @page {
-            size: landscape;
-        }
-    </style>
-
     <x-report-period :from="$this->from" :to="$this->to" />
 
     {{-- Harian, bulanan, tahunan: satu laporan digulung berbeda --}}
@@ -31,13 +24,12 @@
                 {{ __('zeytin.export.download') }}
             </button>
 
+            {{-- Sebelas kolom tidak muat di kertas tegak, jadi Cetak di sini
+                 membuka PDF-nya — yang membuang kolom channel kosong dan
+                 bisa dicetak atau diunduh dari penampilnya. --}}
             <a class="pos__chip" href="{{ $this->pdfUrl() }}" target="_blank" rel="noopener">
-                {{ __('zeytin.pdf.view') }}
+                {{ __('report.print') }} / {{ __('zeytin.pdf.view') }}
             </a>
-
-            <button type="button" class="pos__chip" onclick="window.print()">
-                {{ __('report.print') }}
-            </button>
         </div>
     </div>
 
