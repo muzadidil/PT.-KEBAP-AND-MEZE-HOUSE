@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\Pages\ManagePurchases;
 use App\Models\Purchase;
+use App\Support\Excel\ExcelSource;
+use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -132,6 +134,15 @@ class PurchaseResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel: sheet "Expense" dari template bulanan, dibaca
+     * pengimpor yang sama dengan menu Impor Excel.
+     */
+    public static function excel(): ExcelSource
+    {
+        return SpecSource::make('Expense', __('zeytin.nav.purchases'));
     }
 
     public static function getPages(): array

@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Support\Zeytin\Workbook;
+
+use App\Support\Excel\ExcelSource;
+use App\Support\Excel\ImportReport;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use RuntimeException;
+
+/**
+ * Tombol Excel di halaman pembukuan (Pemasukan Harian, Belanja Tunai,
+ * Transfer Pemasok, Tagihan, Gaji): satu sheet dari template bulanan.
+ *
+ * Bentuk sheet-nya sengaja sama persis dengan sheet bernama sama di berkas
+ * Excel bulanan klien, dan dibaca oleh pengimpor yang sama. Jadi satu sheet
+ * bisa disalin dari berkas bulanan dan diunggah di halamannya sendiri, dan
+ * aturan impornya — impor ulang tidak menggandakan, ketikan orang tidak
+ * disentuh — sama di kedua tempat.
+ */
+class SpecSource implements ExcelSource
+{
+    public function __construct(protected string $sheet, protected string $title) {}
+
+    public static function make(string $sheet, string $title): static
+    {
+        return new static($sheet, $title);
+    }
+
+    public function spec(): SheetSpec
+    {
+        foreach (SheetSpec::all() as $spec) {
+            if ($spec->sheet === $this->sheet) {
+                return $spec;
+            }
+        }
+
+        throw new RuntimeException("Sheet {$this->sheet} tidak dikenal.");
+    }
+
+    public function title(): string
+    {
+        return $this->title;
+    }
+
+    public function templateNeedsMonth(): bool
+    {
+        return true;
+    }
+
+    public function importNeedsMonth(): bool
+    {
+        return $this->spec()->needsMonth;
+    }
+
+    public function template(?Carbon $month = null): Spreadsheet
+    {
+        return (new TemplateBuilder($month, [$this->sheet]))->build();
+    }
+
+    public function filename(?Carbon $month = null): string
+    {
+        return (new TemplateBuilder($month, [$this->sheet]))->filename();
+    }
+
+    public function import(string $path, ?Carbon $month = null): ImportReport
+    {
+        $result = DB::transaction(fn () => (new Importer($month))->importOne($path, $this->spec()));
+
+        // Template yang belum diisi bukan kesalahan: tidak ada yang berubah.
+        if ($result['error'] === 'empty') {
+            return new ImportReport;
+        }
+
+        if ($result['error']) {
+            return ImportReport::failed([__('zeytin.import.error.'.$result['error'])]);
+        }
+
+        return new ImportReport(
+            counts: ['imported' => $result['imported'], 'replaced' => $result['replaced']],
+            note: $result['range'] ? __('excel.result.range', ['range' => $result['range']]) : null,
+        );
+    }
+}

@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Employees\Pages\ManageEmployees;
 use App\Filament\Admin\Resources\Zeytin\Payrolls\PayrollResource;
 use App\Models\Employee;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -148,6 +150,25 @@ class EmployeeResource extends Resource
             ->recordActions([
                 EditAction::make(),
             ]);
+    }
+
+    /** Dicocokkan lewat NIK dulu, lalu lewat nama. */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Employee::class, __('payroll.nav.employees'))
+            ->columns([
+                Column::text('name', 'payroll.field.name')->required()->maxLength(120)->width(28),
+                Column::text('nik', 'payroll.field.nik')->maxLength(40)->asText(),
+                Column::text('position', 'payroll.field.position')->maxLength(80),
+                Column::choice('section', 'payroll.field.section', fn () => PayrollResource::sections()),
+                Column::money('basic_salary', 'payroll.field.basic_salary'),
+                Column::boolean('active', 'field.active')->default(true),
+            ])
+            ->matchBy(['nik'], ['name'])
+            ->examples([[
+                'name' => 'Sinta Dewi', 'nik' => 'ZT-001', 'position' => 'Waiter',
+                'section' => 'Front Staff', 'basic_salary' => 3_000_000, 'active' => true,
+            ]]);
     }
 
     public static function getPages(): array

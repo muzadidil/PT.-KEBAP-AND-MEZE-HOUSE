@@ -2,9 +2,12 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Actions\ExcelActions;
 use App\Filament\Admin\Concerns\ForBackoffice;
 use App\Models\MeetingProject;
 use App\Models\MeetingTask;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Meetings\MeetingReport;
 use App\Support\Meetings\TaskBoard;
 use BackedEnum;
@@ -95,6 +98,39 @@ class MeetingProgress extends Page
         MeetingTask::archiveFinished();
 
         $this->resetDraft();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return ExcelActions::make(static::excel());
+    }
+
+    /**
+     * Template dan impor Excel untuk tugas utama. Tugas yang teks dan
+     * proyeknya sudah ada diperbarui (kategori, prioritas, tenggat, link),
+     * bukan ditambah; proyek yang belum ada dibuat.
+     */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(MeetingTask::class, __('meeting.nav'))
+            ->columns([
+                Column::text('text', 'meeting.field.text')->required()->maxLength(500)->width(40),
+                Column::relation('project_id', 'meeting.field.project', MeetingProject::class)
+                    ->creates(fn (string $name) => MeetingProject::create(['name' => mb_substr($name, 0, 120)])->id)
+                    ->width(24),
+                Column::choice('category', 'meeting.field.category', fn () => collect(MeetingTask::CATEGORIES)
+                    ->mapWithKeys(fn (string $c) => [$c => __('meeting.category.'.$c)])->all())->default('kerja'),
+                Column::choice('priority', 'meeting.field.priority', fn () => collect(MeetingTask::PRIORITIES)
+                    ->mapWithKeys(fn (string $p) => [$p => __('meeting.priority.'.$p)])->all())->default('medium'),
+                Column::date('deadline', 'meeting.field.deadline'),
+                Column::text('link', 'meeting.field.link')->maxLength(500)->width(30),
+            ])
+            ->matchBy(['text', 'project_id'])
+            ->scope(fn ($query) => $query->whereNull('parent_id'))
+            ->examples([[
+                'text' => 'Cek stok bahan untuk minggu depan', 'project_id' => MeetingProject::query()->orderBy('id')->value('id'),
+                'category' => 'kerja', 'priority' => 'high', 'deadline' => now()->addWeek()->startOfDay(),
+            ]]);
     }
 
     /* ------------------------------------------------------------- data */

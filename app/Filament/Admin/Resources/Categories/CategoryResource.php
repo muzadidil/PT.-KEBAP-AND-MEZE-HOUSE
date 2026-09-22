@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Categories;
 use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Categories\Pages\ManageCategories;
 use App\Models\Category;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -108,6 +110,19 @@ class CategoryResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Category::class, __('nav.categories'))
+            ->columns([
+                Column::text('name_en', 'field.name_en')->required()->maxLength(80)->width(26),
+                Column::text('name_id', 'field.name_id')->maxLength(80)->width(26),
+                Column::number('sort', 'field.sort'),
+                Column::boolean('active', 'field.active')->default(true),
+            ])
+            ->matchBy(['name_en'])
+            ->examples([['name_en' => 'Kebab', 'name_id' => 'Kebab', 'sort' => 1, 'active' => true]]);
     }
 
     public static function getPages(): array

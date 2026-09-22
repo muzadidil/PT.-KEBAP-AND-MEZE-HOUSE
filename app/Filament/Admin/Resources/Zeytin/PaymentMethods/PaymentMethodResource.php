@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\PaymentMethods\Pages\ManagePaymentMethods;
 use App\Models\PaymentMethodOption;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -108,6 +110,18 @@ class PaymentMethodResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(PaymentMethodOption::class, __('zeytin.nav.payment_methods'))
+            ->columns([
+                Column::text('name', 'zeytin.field.method')->required()->maxLength(60)->width(22),
+                Column::boolean('active', 'field.active')->default(true),
+                Column::text('note', 'zeytin.field.note')->maxLength(200)->width(34),
+            ])
+            ->matchBy(['name'])
+            ->examples([['name' => 'Transfer', 'active' => true, 'note' => 'Lewat rekening BCA']]);
     }
 
     public static function getPages(): array

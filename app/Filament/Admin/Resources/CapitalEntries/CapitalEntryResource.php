@@ -7,6 +7,9 @@ use App\Enums\PaymentMethod;
 use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\CapitalEntries\Pages\ManageCapitalEntries;
 use App\Models\CapitalEntry;
+use App\Models\Owner;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -163,6 +166,24 @@ class CapitalEntryResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Tanpa kunci pencocokan; baris yang persis sama dilewati. */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(CapitalEntry::class, __('nav.capital'))
+            ->columns([
+                Column::date('entry_on', 'field.date')->required(),
+                Column::relation('owner_id', 'field.owner', Owner::class)->required(),
+                Column::enum('direction', 'field.direction', CapitalDirection::class)->default(CapitalDirection::In->value),
+                Column::enum('method', 'field.method', PaymentMethod::class)->default(PaymentMethod::Cash->value),
+                Column::money('amount', 'field.amount')->required(),
+                Column::text('note', 'field.note')->maxLength(500)->width(30),
+            ])
+            ->examples([[
+                'entry_on' => now()->startOfMonth(), 'owner_id' => Owner::query()->orderByDesc('share_percent')->value('id'),
+                'direction' => CapitalDirection::In->value, 'method' => PaymentMethod::Transfer->value, 'amount' => 10_000_000,
+            ]]);
     }
 
     public static function getPages(): array

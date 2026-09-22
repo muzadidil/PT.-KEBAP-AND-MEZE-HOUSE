@@ -4,7 +4,10 @@ namespace App\Filament\Admin\Resources\Suppliers;
 
 use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
+use App\Models\PaymentMethodOption;
 use App\Models\Supplier;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -147,6 +150,37 @@ class SupplierResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel. Kolom rekening ikut, walau tidak ada di
+     * formulir: sheet Supplier Database klien mengisinya, dan halaman
+     * Transfer Pemasok membacanya.
+     */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Supplier::class, __('nav.suppliers'))
+            ->columns([
+                Column::text('name', 'field.name')->required()->maxLength(120)->width(28),
+                Column::text('supplies', 'field.supplies')->maxLength(160)->width(28),
+                Column::text('contact_person', 'field.contact_person')->maxLength(120),
+                Column::text('phone', 'field.phone')->maxLength(30)->asText(),
+                Column::text('email', 'field.email')->maxLength(120),
+                Column::text('address', 'field.address')->maxLength(500)->width(32),
+                Column::text('bank', 'zeytin.field.bank')->maxLength(60)->width(12),
+                Column::text('bank_account', 'zeytin.field.bank_account')->maxLength(60)->asText(),
+                Column::text('account_name', 'zeytin.field.account_name')->maxLength(120),
+                Column::choice('payment_method', 'zeytin.field.payment_method', fn () => PaymentMethodOption::query()
+                    ->where('active', true)->orderBy('name')->pluck('name', 'name')->all())->open()->maxLength(60),
+                Column::boolean('active', 'field.active')->default(true),
+                Column::text('note', 'field.note')->maxLength(500)->width(30),
+            ])
+            ->matchBy(['name'])
+            ->examples([[
+                'name' => 'CV Daging Bali', 'supplies' => 'Daging sapi, ayam', 'contact_person' => 'Pak Made',
+                'phone' => '081234567890', 'bank' => 'BCA', 'bank_account' => '0123456789',
+                'account_name' => 'Made Wijaya', 'payment_method' => 'Transfer', 'active' => true,
+            ]]);
     }
 
     public static function getPages(): array

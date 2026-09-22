@@ -4,7 +4,10 @@ namespace App\Filament\Admin\Resources\Products;
 
 use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Products\Pages\ManageProducts;
+use App\Models\Category;
 use App\Models\Product;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -152,6 +155,27 @@ class ProductResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Dicocokkan lewat kode dulu, lalu lewat nama Inggrisnya. */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Product::class, __('nav.products'))
+            ->columns([
+                Column::relation('category_id', 'field.category', Category::class, 'name_en')->required(),
+                Column::text('sku', 'field.sku')->maxLength(30)->asText()->width(12),
+                Column::text('name_en', 'field.name_en')->required()->maxLength(120)->width(28),
+                Column::text('name_id', 'field.name_id')->maxLength(120)->width(28),
+                Column::money('price', 'field.price')->required(),
+                Column::number('sort', 'field.sort'),
+                Column::boolean('active', 'field.active')->default(true),
+            ])
+            ->matchBy(['sku'], ['name_en'])
+            ->examples([[
+                'category_id' => Category::query()->orderBy('sort')->value('id'),
+                'sku' => 'KB-01', 'name_en' => 'Chicken Kebab', 'name_id' => 'Kebab Ayam',
+                'price' => 45_000, 'sort' => 1, 'active' => true,
+            ]]);
     }
 
     public static function getPages(): array

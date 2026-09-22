@@ -436,14 +436,18 @@
     font-size: .9375rem;
 }
 
-/* Saat dicetak hanya struk yang keluar; sisi lain halaman tidak ikut. */
+/*
+ * Saat dicetak hanya struk yang keluar; sisi lain halaman tidak ikut.
+ * Dibatasi ke halaman yang memang punya struk: berkas ini dimuat di semua
+ * panel, dan tanpa :has() setiap laporan tercetak sebagai kertas kosong.
+ */
 @media print {
-    body * {
+    body:has(.receipt) * {
         visibility: hidden;
     }
 
-    .receipt,
-    .receipt * {
+    body:has(.receipt) .receipt,
+    body:has(.receipt) .receipt * {
         visibility: visible;
     }
 
@@ -521,6 +525,37 @@
 
 .report__positive {
     color: var(--pos-positive);
+}
+
+/*
+ * Kertas tidak bisa digulir ke samping: kolom yang melewati tepi halaman
+ * terpotong begitu saja. Hurufnya dikecilkan supaya pembukuan bulanan yang
+ * sebelas kolom tetap muat di kertas tegak.
+ */
+@media print {
+    .report__wrap {
+        overflow: visible;
+    }
+
+    .report {
+        font-size: 8pt;
+    }
+
+    .report th,
+    .report td {
+        padding: .25rem .375rem;
+    }
+
+    .report th,
+    .report th.num {
+        font-size: 7pt;
+        letter-spacing: 0;
+        white-space: normal;
+    }
+
+    .report tr {
+        break-inside: avoid;
+    }
 }
 
 /* ---------- kartu ringkasan ---------- */

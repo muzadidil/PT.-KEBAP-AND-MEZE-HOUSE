@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Owners;
 use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Owners\Pages\ManageOwners;
 use App\Models\Owner;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -111,6 +113,18 @@ class OwnerResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Owner::class, __('nav.owners'))
+            ->columns([
+                Column::text('name', 'field.name')->required()->maxLength(80)->width(26),
+                Column::number('share_percent', 'field.share_percent')->required()->between(0, 100),
+                Column::boolean('active', 'field.active')->default(true),
+            ])
+            ->matchBy(['name'])
+            ->examples([['name' => 'Pemilik A', 'share_percent' => 60, 'active' => true]]);
     }
 
     public static function getPages(): array

@@ -8,6 +8,7 @@ use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\SupplierTransfer;
+use App\Support\Zeytin\Channels;
 
 /**
  * Bentuk tiap sheet yang dikenali di berkas bulanan klien.
@@ -25,6 +26,13 @@ use App\Models\SupplierTransfer;
 class SheetSpec
 {
     /**
+     * Kolom yang tidak ada di berkas klien, hanya di template. Ditulis paling
+     * kanan supaya kolom angkanya tetap di tempat yang sama seperti berkas
+     * klien — berkas lama yang disalin-tempel ke template tetap pas kolomnya.
+     */
+    public const TRAILING = ['note', 'section'];
+
+    /**
      * @param  string  $sheet  nama sheet, harus sama persis
      * @param  class-string  $model
      * @param  array<int, string>  $required  judul kolom penanda baris header
@@ -35,6 +43,7 @@ class SheetSpec
      * @param  bool  $inheritDate  tanggal kosong mewarisi baris di atasnya
      * @param  bool  $needsMonth  bulannya ditanyakan, tidak ada di sheet
      * @param  bool  $hasSections  ada baris penanda bagian di tengah data
+     * @param  array<int, string>  $skipWhenEmpty  baris dilewati kalau semua kolom ini kosong atau nol
      */
     public function __construct(
         public string $sheet,
@@ -47,6 +56,7 @@ class SheetSpec
         public bool $inheritDate = false,
         public bool $needsMonth = false,
         public bool $hasSections = false,
+        public array $skipWhenEmpty = [],
     ) {}
 
     /** @return array<int, self> */
@@ -70,6 +80,11 @@ class SheetSpec
                 // Satu baris per tanggal, jadi tanggalnya sendiri yang jadi
                 // nomor barisnya — tidak perlu nomor turunan.
                 uniqueBy: 'date',
+                // Tanggal tanpa angka sama sekali belum diisi, bukan hari
+                // dengan pemasukan nol. Template menuliskan tanggal sebulan
+                // penuh di depan; tanpa ini, hari yang belum diisi akan
+                // menimpa hari yang sudah diketik di aplikasi dengan nol.
+                skipWhenEmpty: Channels::keys(),
             ),
 
             new self(
@@ -85,6 +100,7 @@ class SheetSpec
                     'price' => ['price'],
                     'disc' => ['disc'],
                     'tax' => ['tax'],
+                    'note' => ['note', 'catatan'],
                 ],
                 gate: 'item',
                 keyFrom: ['date', 'vendor', 'item', 'qty', 'price'],
@@ -105,6 +121,7 @@ class SheetSpec
                     'total' => ['total expense'],
                     'method' => ['payment methode', 'payment method'],
                     'status' => ['payment status'],
+                    'note' => ['note', 'catatan'],
                 ],
                 gate: 'item',
                 keyFrom: ['date', 'vendor', 'item', 'qty', 'price', 'total'],
@@ -159,6 +176,10 @@ class SheetSpec
                     'basic' => ['basic sallary', 'basic salary'],
                     'bpjs' => ['deduction bpjs'],
                     'grand_total' => ['grand total sallary', 'grand total salary'],
+                    // Hanya ada di template. Berkas klien menandai bagiannya
+                    // dengan baris "Front Staff" / "Kitchen Staff" di tengah
+                    // data, yang gampang rusak kalau barisnya disisipi.
+                    'section' => ['section', 'bagian'],
                 ],
                 gate: 'name',
                 keyFrom: ['month', 'name'],
@@ -197,12 +218,38 @@ class SheetSpec
      */
     public function templateHeader(): array
     {
-        $titles = array_map(fn (array $aliases) => $aliases[0], array_values($this->map));
-        $missing = array_values(array_diff($this->required, $titles));
+        return array_values($this->templateColumns());
+    }
 
+    /**
+     * Kolom template berurutan, dikunci nama kolomnya: kolom basis data
+     * untuk yang dipetakan, judulnya bergaris bawah untuk yang tidak
+     * ("total_sales"). Kuncinya dipakai TemplateBuilder memilih format,
+     * daftar pilihan, dan rumus tiap kolom.
+     *
+     * @return array<string, string>
+     */
+    public function templateColumns(): array
+    {
+        $titles = array_map(fn (array $aliases) => $aliases[0], $this->map);
+        $trailing = array_intersect_key($titles, array_flip(static::TRAILING));
+        $leading = array_diff_key($titles, $trailing);
+
+        $missing = [];
+
+        foreach (array_diff($this->required, $titles) as $label) {
+            $missing[str_replace(' ', '_', $label)] = $label;
+        }
+
+        // "supplier's name" jadi "Supplier's Name", bukan "Supplier'S Name";
+        // singkatan ditulis seperti di berkas klien. Pembacanya tidak peduli
+        // huruf besar-kecil — ini hanya supaya enak dibaca.
         return array_map(
-            fn (string $label) => preg_replace_callback('/\b[a-z]/', fn ($m) => strtoupper($m[0]), $label),
-            [...$titles, ...$missing],
+            fn (string $label) => strtr(
+                preg_replace_callback("/(?<![\\w'])[a-z]/", fn ($m) => strtoupper($m[0]), $label),
+                ['Bni' => 'BNI', 'Bpjs' => 'BPJS'],
+            ),
+            [...$leading, ...$missing, ...$trailing],
         );
     }
 }

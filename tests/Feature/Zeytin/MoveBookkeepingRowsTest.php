@@ -46,6 +46,7 @@ class MoveBookkeepingRowsTest extends TestCase
         }
 
         (new Xlsx($book))->save($this->path);
+        $book->disconnectWorksheets();
 
         (new Importer(Carbon::parse($month)))->import($this->path);
     }

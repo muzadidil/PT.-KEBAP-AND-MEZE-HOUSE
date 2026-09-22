@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Owners\Pages;
 
+use App\Filament\Admin\Actions\ExcelActions;
 use App\Filament\Admin\Resources\Owners\OwnerResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
@@ -13,6 +14,7 @@ class ManageOwners extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
+            ...ExcelActions::make(OwnerResource::excel()),
             CreateAction::make(),
         ];
     }

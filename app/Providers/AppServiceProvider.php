@@ -43,5 +43,35 @@ class AppServiceProvider extends ServiceProvider
                 })
                 ->implode(''),
         );
+
+        /*
+        | Mode gelap dilepas selama mencetak. Peramban membuang warna latar
+        | saat mencetak, jadi tulisan terang milik mode gelap tertinggal di
+        | kertas putih dan setiap laporan keluar sebagai halaman kosong.
+        | Melepas kelas .dark sekaligus membalikkan warna Filament sendiri,
+        | yang tidak bisa dijangkau dari pos.css.
+        */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn (): string => <<<'HTML'
+                <script>
+                    (() => {
+                        const root = document.documentElement;
+                        let wasDark = false;
+
+                        window.addEventListener('beforeprint', () => {
+                            wasDark = root.classList.contains('dark');
+                            root.classList.remove('dark');
+                        });
+
+                        window.addEventListener('afterprint', () => {
+                            if (wasDark) {
+                                root.classList.add('dark');
+                            }
+                        });
+                    })();
+                </script>
+                HTML,
+        );
     }
 }

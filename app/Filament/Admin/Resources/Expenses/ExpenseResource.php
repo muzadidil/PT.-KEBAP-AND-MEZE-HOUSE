@@ -7,6 +7,10 @@ use App\Enums\PaymentMethod;
 use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Expenses\Pages\ManageExpenses;
 use App\Models\Expense;
+use App\Models\Owner;
+use App\Models\Supplier;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -229,6 +233,31 @@ class ExpenseResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Tanpa kunci pencocokan: pengeluaran tidak punya nama. Baris yang
+     * isinya persis sama dengan yang sudah tercatat dilewati.
+     */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(Expense::class, __('nav.expenses'))
+            ->columns([
+                Column::date('spent_on', 'field.date')->required(),
+                Column::text('description', 'field.description')->required()->maxLength(160)->width(32),
+                Column::money('amount', 'field.amount')->required(),
+                Column::enum('category', 'field.category', ExpenseCategory::class)->default(ExpenseCategory::Operational->value),
+                Column::enum('method', 'field.method', PaymentMethod::class)->default(PaymentMethod::Cash->value),
+                Column::relation('supplier_id', 'field.supplier', Supplier::class)->width(24),
+                Column::relation('paid_by_owner_id', 'field.paid_by_owner', Owner::class),
+                Column::boolean('is_paid', 'field.is_paid')->default(true),
+                Column::date('due_on', 'field.due_on'),
+                Column::text('note', 'field.note')->maxLength(500)->width(30),
+            ])
+            ->examples([[
+                'spent_on' => now()->startOfMonth()->addDays(4), 'description' => 'Gas elpiji 12 kg', 'amount' => 210_000,
+                'category' => ExpenseCategory::Operational->value, 'method' => PaymentMethod::Cash->value, 'is_paid' => true,
+            ]]);
     }
 
     public static function getPages(): array

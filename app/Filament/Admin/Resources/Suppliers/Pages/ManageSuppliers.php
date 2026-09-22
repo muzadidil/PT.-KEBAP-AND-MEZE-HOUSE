@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Suppliers\Pages;
 
+use App\Filament\Admin\Actions\ExcelActions;
 use App\Filament\Admin\Resources\Suppliers\SupplierResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
@@ -13,6 +14,7 @@ class ManageSuppliers extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
+            ...ExcelActions::make(SupplierResource::excel()),
             CreateAction::make(),
         ];
     }

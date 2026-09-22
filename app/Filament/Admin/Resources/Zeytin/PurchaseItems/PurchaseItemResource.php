@@ -6,6 +6,9 @@ use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\PurchaseItems\Pages\ManagePurchaseItems;
 use App\Models\PurchaseItem;
+use App\Models\Supplier;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -131,6 +134,22 @@ class PurchaseItemResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(PurchaseItem::class, __('zeytin.nav.purchase_items'))
+            ->columns([
+                Column::text('name', 'zeytin.field.item')->required()->maxLength(200)->width(30),
+                Column::text('unit', 'zeytin.field.unit')->maxLength(40)->width(10),
+                Column::money('price', 'zeytin.field.price'),
+                Column::choice('vendor', 'zeytin.field.vendor', fn () => Supplier::query()
+                    ->orderBy('name')->pluck('name', 'name')->all())->open()->maxLength(160)->width(26),
+                Column::boolean('active', 'field.active')->default(true),
+                Column::text('note', 'zeytin.field.note')->maxLength(200)->width(30),
+            ])
+            ->matchBy(['name'])
+            ->examples([['name' => 'Tomat', 'unit' => 'kg', 'price' => 18_000, 'vendor' => 'Pasar Kerobokan', 'active' => true]]);
     }
 
     public static function getPages(): array

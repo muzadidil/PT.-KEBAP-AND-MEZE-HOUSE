@@ -102,6 +102,8 @@ class ImportExcel extends Page
                         ->helperText(__('zeytin.import.payroll_month_hint'))
                         ->native(false)
                         ->displayFormat('M Y')
+                        // Tombol template ikut membaca bulan ini.
+                        ->live()
                         ->required()
                         ->columnSpanFull(),
                 ]),
@@ -122,7 +124,7 @@ class ImportExcel extends Page
                             ->submit('import'),
 
                         Action::make('template')
-                            ->label(__('zeytin.template.download'))
+                            ->label(fn () => __('zeytin.template.download_month', ['month' => $this->templateMonth()->translatedFormat('F Y')]))
                             ->color('gray')
                             ->icon(Heroicon::OutlinedArrowDownTray)
                             ->action('downloadTemplate'),
@@ -172,23 +174,31 @@ class ImportExcel extends Page
     }
 
     /**
-     * Template kosong berisi keenam sheet dengan judul kolom yang benar.
+     * Template untuk bulan yang dipilih di formulir.
      *
      * Dibangun saat tombolnya ditekan, dari daftar kolom yang sama dipakai
-     * pembacanya — bukan berkas contoh yang disimpan di repo. Berkas contoh
-     * yang disimpan akan diam-diam ketinggalan zaman begitu satu kolom
-     * berubah, dan template yang judulnya meleset sedikit saja akan ditolak
-     * saat diunggah, persis masalah yang hendak dihilangkannya.
+     * pembacanya dan dari daftar pemasok/barang yang sedang berlaku — bukan
+     * berkas contoh yang disimpan di repo. Berkas contoh yang disimpan akan
+     * diam-diam ketinggalan zaman begitu satu kolom atau satu pemasok
+     * berubah.
      */
     public function downloadTemplate(): StreamedResponse
     {
-        $book = (new TemplateBuilder)->build();
-        $name = 'zeytin-template-'.now()->toDateString().'.xlsx';
+        $builder = new TemplateBuilder($this->templateMonth());
+        $book = $builder->build();
 
         return response()->streamDownload(function () use ($book) {
             (new Xlsx($book))->save('php://output');
-        }, $name, [
+            $book->disconnectWorksheets();
+        }, $builder->filename(), [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    protected function templateMonth(): Carbon
+    {
+        $month = $this->data['payroll_month'] ?? null;
+
+        return (filled($month) ? Carbon::parse($month) : now())->startOfMonth();
     }
 }

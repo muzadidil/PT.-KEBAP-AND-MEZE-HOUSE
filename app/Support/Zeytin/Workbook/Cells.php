@@ -23,17 +23,44 @@ class Cells
     /** "Rp 45.000", "45000", 45000.4 — semuanya jadi 45000. */
     public static function toNumber(mixed $value): int
     {
+        // Longgar: huruf di sekitar angkanya dibuang ("45000 IDR").
+        if (is_string($value)) {
+            $value = preg_replace('/[^0-9.,-]/', '', $value);
+        }
+
+        return static::parseNumber($value) ?? 0;
+    }
+
+    /**
+     * Seperti toNumber, tapi isi yang bukan angka jadi null, bukan nol —
+     * untuk pembaca yang harus bisa bilang "ini bukan angka".
+     *
+     * Titik ribuan dibaca sebagai titik ribuan: "Rp 35.000" adalah 35000,
+     * bukan 35. Begitu juga koma ribuan ("35,000"). Titik yang bukan pola
+     * ribuan tetap desimal ("2.5" jadi 3).
+     */
+    public static function parseNumber(mixed $value): ?int
+    {
         if ($value === null || $value === '') {
-            return 0;
+            return null;
         }
 
-        if (is_numeric($value)) {
-            return (int) round((float) $value);
+        if (is_int($value) || is_float($value)) {
+            return (int) round($value);
         }
 
-        $digits = preg_replace('/[^0-9.-]/', '', (string) $value);
+        $text = preg_replace('/^rp\.?|\s/i', '', trim((string) $value));
 
-        return is_numeric($digits) ? (int) round((float) $digits) : 0;
+        if (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $text) || preg_match('/^-?\d{1,3}(,\d{3})+$/', $text)) {
+            $text = str_replace(['.', ','], '', $text);
+        }
+
+        // "35.000,50" dan sejenisnya: ribuan titik, desimal koma.
+        if (preg_match('/^-?\d{1,3}(\.\d{3})+,\d+$/', $text)) {
+            $text = str_replace(['.', ','], ['', '.'], $text);
+        }
+
+        return is_numeric($text) ? (int) round((float) $text) : null;
     }
 
     public static function toText(mixed $value): string

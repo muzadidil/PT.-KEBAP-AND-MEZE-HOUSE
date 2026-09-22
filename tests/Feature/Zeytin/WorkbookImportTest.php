@@ -61,6 +61,7 @@ class WorkbookImportTest extends TestCase
         }
 
         (new Xlsx($book))->save($this->path);
+        $book->disconnectWorksheets();
 
         return $this->path;
     }

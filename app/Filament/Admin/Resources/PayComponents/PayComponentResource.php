@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\PayComponents;
 use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\PayComponents\Pages\ManagePayComponents;
 use App\Models\PayComponent;
+use App\Support\Excel\Column;
+use App\Support\Excel\ExcelSheet;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
@@ -145,6 +147,24 @@ class PayComponentResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+            ]);
+    }
+
+    /** Nama boleh kembar asal jenisnya beda, jadi kuncinya jenis + nama. */
+    public static function excel(): ExcelSheet
+    {
+        return ExcelSheet::make(PayComponent::class, __('payroll.nav.components'))
+            ->columns([
+                Column::choice('type', 'payroll.field.type', fn () => static::types())->default(PayComponent::EARNING),
+                Column::text('name', 'payroll.field.component')->required()->maxLength(80)->width(26),
+                Column::money('default_amount', 'payroll.field.default_amount'),
+                Column::boolean('fixed', 'payroll.field.fixed')->default(false),
+                Column::boolean('active', 'field.active')->default(true),
+            ])
+            ->matchBy(['type', 'name'])
+            ->examples([
+                ['type' => PayComponent::EARNING, 'name' => 'Uang makan', 'default_amount' => 300_000, 'fixed' => true, 'active' => true],
+                ['type' => PayComponent::DEDUCTION, 'name' => 'BPJS', 'default_amount' => 150_000, 'fixed' => false, 'active' => true],
             ]);
     }
 

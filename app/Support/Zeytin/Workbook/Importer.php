@@ -2,6 +2,7 @@
 
 namespace App\Support\Zeytin\Workbook;
 
+use App\Filament\Admin\Resources\Zeytin\Payrolls\PayrollResource;
 use App\Models\Supplier;
 use App\Support\Zeytin\Channels;
 use App\Support\Zeytin\RecordSource;
@@ -11,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Throwable;
 
@@ -46,7 +48,7 @@ class Importer
     protected array $text = [
         'vendor', 'item', 'unit', 'method', 'status', 'name', 'section',
         'contact_person', 'supplies', 'bank', 'bank_account', 'account_name',
-        'payment_method',
+        'payment_method', 'note',
     ];
 
     /**
@@ -75,11 +77,62 @@ class Importer
 
         $results = [];
 
-        foreach (SheetSpec::all() as $spec) {
-            $results[] = $this->importSheet($spreadsheet->getSheetByName($spec->sheet), $spec);
+        try {
+            foreach (SheetSpec::all() as $spec) {
+                $results[] = $this->importSheet($spreadsheet->getSheetByName($spec->sheet), $spec);
+            }
+        } finally {
+            // Tanpa ini buku kerjanya tidak pernah dilepas dari memori.
+            $spreadsheet->disconnectWorksheets();
         }
 
         return $results;
+    }
+
+    /**
+     * Satu sheet saja — tombol Impor di halaman pembukuan masing-masing.
+     *
+     * Sheetnya dicari dari namanya dulu. Kalau tidak ada (sheetnya diganti
+     * nama), dipakai sheet pertama yang punya baris judul yang cocok —
+     * kecuali sheet petunjuk dan sheet tersembunyi: keduanya memuat tabel
+     * contoh dan daftar pilihan, bukan data.
+     *
+     * @return array{sheet: string, imported: int, replaced: int, range: string, error: string|null}
+     */
+    public function importOne(string $path, SheetSpec $spec): array
+    {
+        $spreadsheet = IOFactory::load($path);
+        Calculation::getInstance($spreadsheet)->setSuppressFormulaErrors(true);
+
+        try {
+            $sheet = $spreadsheet->getSheetByName($spec->sheet) ?? $this->sheetWithHeader($spreadsheet, $spec);
+
+            return $this->importSheet($sheet, $spec);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+    }
+
+    protected function sheetWithHeader(Spreadsheet $book, SheetSpec $spec): ?Worksheet
+    {
+        foreach ($book->getWorksheetIterator() as $sheet) {
+            if ($sheet->getSheetState() !== Worksheet::SHEETSTATE_VISIBLE
+                || in_array(mb_strtolower($sheet->getTitle()), TemplateBuilder::guideTitles(), true)) {
+                continue;
+            }
+
+            try {
+                $grid = $sheet->toArray(null, true, false, false);
+            } catch (Throwable) {
+                continue;
+            }
+
+            if ($this->findHeaderRows($grid, $spec->required)) {
+                return $sheet;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -226,7 +279,9 @@ class Importer
             }
 
             // Penanda bagian di sheet Payroll, ditulis sebagai baris teks biasa.
-            if ($spec->hasSections && $label = $this->sectionLabel($normalised)) {
+            // Kolom Section milik template tidak ikut diperiksa: baris gaji
+            // yang bagiannya "Kitchen Staff" adalah data, bukan penanda.
+            if ($spec->hasSections && $label = $this->sectionLabel(Arr::except($normalised, $columns['section'] ?? []))) {
                 $section = $label;
 
                 continue;
@@ -249,10 +304,14 @@ class Importer
             }
 
             if ($spec->hasSections) {
-                $row['section'] = $section ?? 'Front Staff';
+                $row['section'] = $this->sectionName($row['section'] ?? '') ?? $section ?? 'Front Staff';
             }
 
             if (blank($row[$spec->gate] ?? null)) {
+                continue;
+            }
+
+            if ($spec->skipWhenEmpty && ! array_filter(Arr::only($row, $spec->skipWhenEmpty))) {
                 continue;
             }
 
@@ -303,6 +362,12 @@ class Importer
             }
         }
 
+        // Kolom catatan di basis data 200 karakter. Catatan yang lebih
+        // panjang dipotong, bukan menggagalkan impor sebulan.
+        if (array_key_exists('note', $row)) {
+            $row['note'] = mb_substr($row['note'], 0, 200) ?: null;
+        }
+
         return $row;
     }
 
@@ -328,6 +393,26 @@ class Importer
         }
 
         return null;
+    }
+
+    /**
+     * Isi kolom Section, dengan ejaan yang sama dipakai halaman Gaji
+     * ("kitchen staff" jadi "Kitchen Staff"). Yang tidak dikenali disimpan
+     * apa adanya supaya kelihatan, bukan diganti bagian lain diam-diam.
+     */
+    protected function sectionName(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (array_keys(PayrollResource::sections()) as $known) {
+            if (Cells::norm($known) === Cells::norm($value)) {
+                return $known;
+            }
+        }
+
+        return $value;
     }
 
     /**

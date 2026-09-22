@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\Purchases\Pages;
 
+use App\Filament\Admin\Actions\ExcelActions;
 use App\Filament\Admin\Resources\Zeytin\Purchases\PurchaseResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
@@ -13,6 +14,7 @@ class ManagePurchases extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
+            ...ExcelActions::make(PurchaseResource::excel()),
             CreateAction::make(),
         ];
     }

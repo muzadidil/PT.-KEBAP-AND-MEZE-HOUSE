@@ -6,8 +6,10 @@ use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\DailyIncomes\Pages\ManageDailyIncomes;
 use App\Models\DailyIncome;
+use App\Support\Excel\ExcelSource;
 use App\Support\Money;
 use App\Support\Zeytin\Channels;
+use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -127,6 +129,15 @@ class DailyIncomeResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel: sheet "Income" dari template bulanan, dibaca
+     * pengimpor yang sama dengan menu Impor Excel.
+     */
+    public static function excel(): ExcelSource
+    {
+        return SpecSource::make('Income', __('zeytin.nav.daily_income'));
     }
 
     public static function getPages(): array

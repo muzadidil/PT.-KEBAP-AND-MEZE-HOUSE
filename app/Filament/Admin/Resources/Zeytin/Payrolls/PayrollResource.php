@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\Payrolls\Pages\ManagePayrolls;
 use App\Models\Payroll;
+use App\Support\Excel\ExcelSource;
+use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -156,6 +158,15 @@ class PayrollResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel: sheet "Payroll" dari template bulanan, dibaca
+     * pengimpor yang sama dengan menu Impor Excel.
+     */
+    public static function excel(): ExcelSource
+    {
+        return SpecSource::make('Payroll', __('zeytin.nav.payroll'));
     }
 
     public static function getPages(): array

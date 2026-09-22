@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\OutstandingBills\Pages\ManageOutstandingBills;
 use App\Models\OutstandingBill;
+use App\Support\Excel\ExcelSource;
+use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -54,7 +56,7 @@ class OutstandingBillResource extends Resource
         return __('zeytin.nav.outstanding');
     }
 
-    protected static function statuses(): array
+    public static function statuses(): array
     {
         return [
             'Need the payment' => __('zeytin.status.need'),
@@ -189,6 +191,15 @@ class OutstandingBillResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel: sheet "Outstanding INV" dari template bulanan, dibaca
+     * pengimpor yang sama dengan menu Impor Excel.
+     */
+    public static function excel(): ExcelSource
+    {
+        return SpecSource::make('Outstanding INV', __('zeytin.nav.outstanding'));
     }
 
     public static function getPages(): array

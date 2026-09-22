@@ -392,11 +392,73 @@ pemasok dan gaji tiap karyawan, dan tidak ada gunanya menumpuk salinannya.
 Seluruh berkas masuk dalam satu transaksi, jadi tidak ada keadaan "separuh
 bulan terimpor" yang harus dibereskan tanpa tahu separuh mana.
 
-Tombol **Unduh template** membangun berkas contoh berisi keenam sheet dengan
-judul kolom yang benar — diturunkan dari daftar kolom yang sama dipakai
-pembacanya, bukan berkas contoh yang disimpan di repo. Berkas yang disimpan
-akan diam-diam ketinggalan zaman begitu satu kolom berubah, dan template yang
-judulnya meleset sedikit saja akan ditolak saat diunggah.
+### Template impor per bulan
+
+Tombol **Unduh template [bulan]** membangun berkas untuk bulan yang dipilih
+di kotak Bulan. Judul kolomnya diturunkan dari daftar kolom yang sama dipakai
+pembacanya, bukan berkas contoh yang disimpan di repo. Yang dikejar lebih
+dari sekadar judul yang benar: berkas yang sulit diisi berantakan.
+
+- **Tanggal dibatasi ke bulan itu** di Income, Expense, dan Supplier Transfer
+  Payment. Tanggal lain ditolak saat diketik, dan yang lolos lewat tempel
+  diwarnai merah. Salah ketik `18/8/2028` tidak bisa terulang dari template.
+- **Pemasok, barang, satuan, dan cara bayar** dipilih dari daftar yang sama
+  dengan formulir aplikasi (sheet *Daftar* yang disembunyikan). Nama baru
+  tetap boleh, cuma diingatkan, seperti di formulirnya. Isinya bertambah
+  sendiri begitu Super Admin menambah pemasok atau barang belanja.
+- **Status dan bagian karyawan** dari daftar tertutup, seperti halamannya.
+- **Total terisi sendiri** dengan rumus aplikasi. Kolom abu-abu tidak dibaca
+  saat impor. Kolom kuning (Total Expense, Grand Total Sallary) berisi rumus
+  awal yang boleh ditimpa angka yang benar-benar dibayar.
+- **Tanggal Income terisi sebulan penuh.** Hari yang angkanya masih kosong
+  dilewati pengimpor, jadi template yang baru separuh diisi tidak menimpa
+  hari yang sudah diketik di aplikasi dengan nol.
+- **Kolom Note** di Expense dan Supplier Transfer Payment, dan **kolom
+  Section** di Payroll. Keduanya hanya ada di template, di paling kanan,
+  supaya kolom angka tetap di tempat yang sama dengan berkas klien.
+- **Nomor rekening disimpan sebagai teks**, jadi nol di depannya tidak hilang.
+- Sheet **Petunjuk** berisi aturan pengisian dan satu contoh per sheet. Sheet
+  data sendiri sengaja kosong: baris contoh yang lupa dihapus akan ikut
+  terimpor sebagai data sungguhan.
+
+Daftar karyawan di template hanya berisi nama, tanpa gaji: template diunduh
+Admin, dan gaji per orang hanya untuk Super Admin.
+
+### Impor Excel di tiap menu
+
+Setiap menu input punya tombol **Unduh template** dan **Impor Excel** di
+kanan atas daftarnya:
+
+| Menu | Cara impor |
+|---|---|
+| Pemasukan Harian, Belanja Tunai, Transfer Pemasok, Tagihan, Gaji | satu sheet dari template bulanan di atas, dibaca pengimpor yang sama. Template-nya menanyakan bulan |
+| Pemasok, Menu, Kategori, Pemilik, Barang Belanja, Cara Bayar, Karyawan, Komponen Gaji | data induk: yang namanya (atau kodenya/NIK-nya) sudah ada **diperbarui**, sisanya ditambah |
+| Pengeluaran, Modal Pemilik | catatan tanpa nama: baris yang **persis sama** dengan yang sudah tercatat dilewati |
+| Progres Rapat | tugas utama; teks + proyek yang sudah ada diperbarui, proyek baru dibuat otomatis |
+
+Yang sengaja tanpa impor: **Pengguna** (kata sandi dan peran tidak diisi
+lewat berkas) dan **Slip Gaji** (dibuat dari karyawan dan komponen gaji,
+yang keduanya bisa diimpor). `ExcelImportTest` gagal kalau ada menu baru
+yang belum diputuskan.
+
+Kolom tiap menu dideklarasikan di resource-nya sendiri, di sebelah
+formulirnya (`public static function excel()`). Satu deklarasi dipakai dua
+arah — menulis template dan membaca berkas — jadi keduanya tidak bisa
+berbeda pendapat soal kolom wajib atau pilihan yang sah.
+
+- **Semua atau tidak sama sekali.** Setiap sel diperiksa dulu. Kalau satu
+  baris saja salah, tidak ada yang disimpan, dan notifikasinya menyebut
+  kesalahannya per baris dan per kolom ("Baris 7 · Harga: bukan angka").
+- **Kolom dikenali dari judulnya**, di bahasa Indonesia maupun Inggris.
+  Urutan kolom boleh diubah, kolom tambahan diabaikan, dan kolom yang tidak
+  ada di berkas tidak menyentuh isi lama.
+- **Sel kosong tidak menghapus isi lama.** Kolom Aktif yang kosong tidak
+  mengaktifkan lagi pemasok yang sengaja dinonaktifkan.
+- **Pilihan dibaca dari labelnya** ("Tunai" atau "Cash") maupun nilainya
+  ("cash"). Kategori, pemilik, dan pemasok dicari dari namanya.
+- **Dua baris dengan kunci yang sama di satu berkas ditolak**, bukan dipilih
+  yang terakhir.
+- Angka bertitik ribuan (`Rp 35.000`) dibaca 35000, bukan 35.
 
 ### Mengimpor ulang berkas yang sama itu aman
 
@@ -521,6 +583,8 @@ app/Support/Zeytin/PeriodExport.php unduhan Excel buku besar
 app/Support/Zeytin/PeriodPdf.php    unduhan PDF buku besar (dompdf)
 resources/views/pdf/                templat PDF
 app/Support/Zeytin/Workbook/        pembaca & template berkas Excel klien
+app/Support/Excel/                  template & impor Excel per menu
+app/Filament/Admin/Actions/ExcelActions.php   tombol Unduh template & Impor Excel
 
 app/Filament/Admin/Resources/Employees, PayComponents, Payslips   penggajian
 app/Support/Payroll/                PDF slip & kop slip
@@ -546,7 +610,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**280 tes, 1.312 asersi, semuanya lolos** (diverifikasi 21 September 2026).
+**309 tes, 1.475 asersi, semuanya lolos** (diverifikasi 22 September 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
@@ -606,6 +670,13 @@ Dan untuk pembukuan bulanan:
 - template kosong yang diisi lalu diunggah terbaca utuh oleh pembacanya —
   jadi judul kolom yang berubah tanpa templatenya ikut berubah akan
   menggagalkan tes, bukan menggagalkan penggunanya
+- template dibatasi ke bulannya, pilihannya diambil dari data aplikasi (tanpa
+  gaji), totalnya sama dengan rumus aplikasi, dan template yang belum diisi
+  tidak mengimpor atau menimpa apa pun
+- setiap menu input punya template dan impor Excel, kecuali yang sengaja
+  dikecualikan; satu baris yang salah membatalkan seluruh berkas; data induk
+  diperbarui bukan digandakan; pengeluaran yang diimpor ulang tidak
+  terhitung dua kali; contoh di sheet Petunjuk tidak pernah ikut terimpor
 - PDF memuat angka ringkasan yang sama dengan layar, dan laporan harian
   membuang hari kosong tanpa mengubah totalnya
 - baris Total di tiap sheet catatan mentah Excel sama dengan angka di

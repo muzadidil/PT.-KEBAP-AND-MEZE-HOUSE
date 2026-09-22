@@ -6,6 +6,8 @@ use App\Filament\Admin\Concerns\ForAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\SupplierTransfers\Pages\ManageSupplierTransfers;
 use App\Models\SupplierTransfer;
+use App\Support\Excel\ExcelSource;
+use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -166,6 +168,15 @@ class SupplierTransferResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Template dan impor Excel: sheet "Supplier Transfer Payment" dari template bulanan, dibaca
+     * pengimpor yang sama dengan menu Impor Excel.
+     */
+    public static function excel(): ExcelSource
+    {
+        return SpecSource::make('Supplier Transfer Payment', __('zeytin.nav.transfers'));
     }
 
     public static function getPages(): array

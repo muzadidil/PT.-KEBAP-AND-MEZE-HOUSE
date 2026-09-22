@@ -5,6 +5,13 @@
 @endphp
 
 <x-filament-panels::page>
+    {{-- Sebelas kolom tidak muat di kertas tegak; kolom terakhir terpotong --}}
+    <style>
+        @page {
+            size: landscape;
+        }
+    </style>
+
     <x-report-period :from="$this->from" :to="$this->to" />
 
     {{-- Harian, bulanan, tahunan: satu laporan digulung berbeda --}}
