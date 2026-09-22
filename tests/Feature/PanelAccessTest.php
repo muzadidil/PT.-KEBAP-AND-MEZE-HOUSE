@@ -69,11 +69,12 @@ class PanelAccessTest extends TestCase
         ];
     }
 
-    /** Halaman yang dipakai kedua peran backoffice — Progres Rapat. */
+    /** Halaman yang dipakai kedua peran backoffice — Progres Rapat, Daily Report. */
     public static function sharedPages(): array
     {
         return [
             'meeting progress' => ['filament.admin.pages.meeting-progress'],
+            'daily report' => ['filament.admin.pages.daily-report'],
         ];
     }
 

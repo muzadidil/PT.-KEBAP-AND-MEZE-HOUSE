@@ -1001,6 +1001,96 @@
     flex: 1 1 14rem;
 }
 
+/* ---------- daily report ---------- */
+
+/*
+ * Halaman Daily Report; lihat App\Filament\Admin\Pages\DailyReport. Satu
+ * partial dipakai untuk bagian utama maupun sub-catatan di tingkat mana
+ * pun — bedanya cuma tebal atau tidak, jadi kelasnya juga satu set, tidak
+ * dipisah task/subtask seperti Progres Rapat.
+ */
+.note-datebar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.note-datebar .fi-input-wrp {
+    width: 10rem;
+}
+
+.note-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.note-form__text {
+    flex: 1 1 16rem;
+}
+
+.note-form__nominal {
+    flex: 0 0 8rem;
+}
+
+.note-item {
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--pos-border);
+}
+
+.note-item:last-child {
+    border-bottom: none;
+}
+
+.note-item__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.note-item__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--pos-text);
+    overflow-wrap: anywhere;
+}
+
+.note-item__text--master {
+    font-weight: 700;
+    font-size: .9375rem;
+}
+
+.note-item__nominal-badge {
+    flex: none;
+    padding: .125rem .5rem;
+    border-radius: .375rem;
+    background: var(--pos-surface-sunken);
+    color: var(--pos-text);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.note-item__actions {
+    display: flex;
+    flex: none;
+    gap: .25rem;
+}
+
+.note-item__add {
+    padding: .375rem 0;
+}
+
+.note-item__children {
+    margin-top: .25rem;
+    margin-left: .1875rem;
+    padding-left: 1.125rem;
+    border-left: 1px dashed var(--pos-border);
+}
+
 [x-cloak] {
     display: none !important;
 }
