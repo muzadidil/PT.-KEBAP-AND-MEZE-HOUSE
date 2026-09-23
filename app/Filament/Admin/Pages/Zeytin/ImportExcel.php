@@ -51,6 +51,12 @@ class ImportExcel extends Page
     /** @var array<int, array<string, mixed>> */
     public array $results = [];
 
+    /** @var array<int, array<string, mixed>> baris kemungkinan dobel yang menunggu keputusan */
+    public array $review = [];
+
+    /** @var array<int, string> baris kemungkinan dobel yang tetap dimasukkan ("Sheet|kunci") */
+    public array $include = [];
+
     public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('zeytin.nav.group');
@@ -133,13 +139,104 @@ class ImportExcel extends Page
         ]);
     }
 
+    /**
+     * Langkah pertama: berkasnya dibaca dan diperiksa, belum ada yang
+     * disimpan. Tanggal di luar bulan berkas menghentikan impor; baris yang
+     * sama dengan ketikan manual ditunjukkan dulu untuk dipilih. Kalau
+     * keduanya tidak ada, langsung diimpor.
+     */
     public function import(): void
+    {
+        [$path, $month] = $this->upload();
+
+        $this->results = [];
+        $this->review = [];
+        $this->include = [];
+
+        try {
+            $inspection = (new Importer($month))->inspect($path);
+        } catch (Throwable $e) {
+            $this->failed($e);
+
+            return;
+        }
+
+        if (collect($inspection)->contains('error', 'out_of_month')) {
+            $this->results = $inspection;
+
+            Notification::make()->danger()->persistent()->title(__('zeytin.import.error.blocked'))->send();
+
+            return;
+        }
+
+        $this->review = collect($inspection)
+            ->flatMap(fn (array $result) => array_map(
+                fn (array $row) => [...$row, 'sheet' => $result['sheet'], 'id' => $result['sheet'].'|'.$row['key']],
+                $result['duplicates'],
+            ))
+            ->values()
+            ->all();
+
+        if ($this->review) {
+            Notification::make()->warning()->title(__('zeytin.import.review.title'))->send();
+
+            return;
+        }
+
+        $this->run([]);
+    }
+
+    /** Langkah kedua: yang dicentang "Tetap masukkan" ikut, sisanya dilewati. */
+    public function continueImport(): void
+    {
+        $skip = [];
+
+        foreach ($this->review as $row) {
+            if (! in_array($row['id'], $this->include, true)) {
+                $skip[$row['sheet']][] = $row['key'];
+            }
+        }
+
+        $this->review = [];
+        $this->include = [];
+
+        $this->run($skip);
+    }
+
+    public function cancelImport(): void
+    {
+        $this->review = [];
+        $this->include = [];
+
+        Notification::make()->title(__('zeytin.import.review.cancelled'))->send();
+    }
+
+    /** @return array{0: string, 1: Carbon} */
+    protected function upload(): array
     {
         $state = $this->form->getState();
 
         /** @var TemporaryUploadedFile $file */
         $file = $state['file'];
-        $month = Carbon::parse($state['payroll_month'])->startOfMonth();
+
+        return [$file->getRealPath(), Carbon::parse($state['payroll_month'])->startOfMonth()];
+    }
+
+    protected function failed(Throwable $e): void
+    {
+        $this->results = [];
+        $this->review = [];
+
+        Notification::make()
+            ->danger()
+            ->title(__('zeytin.import.error.failed', ['message' => $e->getMessage()]))
+            ->send();
+    }
+
+    /** @param  array<string, array<int, string>>  $skip */
+    protected function run(array $skip): void
+    {
+        [$path, $month] = $this->upload();
 
         try {
             /*
@@ -150,15 +247,10 @@ class ImportExcel extends Page
              * separuh mana.
              */
             $this->results = DB::transaction(
-                fn () => (new Importer($month))->import($file->getRealPath()),
+                fn () => (new Importer($month))->skipping($skip)->import($path),
             );
         } catch (Throwable $e) {
-            $this->results = [];
-
-            Notification::make()
-                ->danger()
-                ->title(__('zeytin.import.error.failed', ['message' => $e->getMessage()]))
-                ->send();
+            $this->failed($e);
 
             return;
         }

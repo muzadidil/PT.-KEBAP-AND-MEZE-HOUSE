@@ -125,11 +125,11 @@ class WorkbookImportTest extends TestCase
     }
 
     /**
-     * Rentang tanggal yang terbaca dilaporkan apa adanya. Salah ketik tahun
-     * di satu sel tidak mengubah jumlah baris dan tidak memunculkan galat —
-     * yang berubah cuma ujung rentangnya, dan itulah satu-satunya tanda.
+     * Salah ketik tahun di satu sel — "18/8/2028" di berkas Agustus 2026 —
+     * dulu masuk diam-diam. Sekarang sheet-nya ditolak, dengan nomor baris
+     * dan tanggalnya, dan tidak ada satu baris pun dari sheet itu yang masuk.
      */
-    public function test_rentang_tanggal_dilaporkan_sehingga_salah_ketik_tahun_kelihatan(): void
+    public function test_tanggal_di_luar_bulan_berkas_menolak_sheetnya(): void
     {
         $this->fill(['Expense' => [
             ['01/08/2026', 'Pak Budi', 'Ayam', 1, 'kg', 35_000, 0, 0, 35_000],
@@ -138,8 +138,125 @@ class WorkbookImportTest extends TestCase
 
         $result = $this->sheetResult($this->import(), 'Expense');
 
-        $this->assertSame(2, $result['imported']);
+        $this->assertSame('out_of_month', $result['error']);
+        $this->assertSame([['line' => 3, 'date' => '2028-08-18']], $result['rows']);
         $this->assertSame('2026-08-01 … 2028-08-18', $result['range']);
+        $this->assertSame(0, Purchase::count());
+    }
+
+    /** Tagihan yang belum lunas dari bulan-bulan sebelumnya memang masih ikut di daftarnya. */
+    public function test_tagihan_boleh_dari_bulan_sebelumnya(): void
+    {
+        $this->fill(['Outstanding INV' => [
+            ['15/06/2026', null, 'Pak Budi', 'Ayam', 'kg', 10, 35_000, 0, 0, 350_000, 'Need the payment'],
+        ]]);
+
+        $this->assertNull($this->sheetResult($this->import(), 'Outstanding INV')['error']);
+        $this->assertSame(1, OutstandingBill::count());
+    }
+
+    /* ------------------------------------------------ dobel dengan ketikan */
+
+    protected function typedPurchase(array $attributes = []): Purchase
+    {
+        return Purchase::create([
+            'date' => '2026-08-01',
+            'vendor' => null,
+            'item' => 'Ayam',
+            'qty' => 10,
+            'price' => 35_000,
+            'source' => RecordSource::MANUAL,
+            ...$attributes,
+        ]);
+    }
+
+    public function test_baris_yang_sudah_diketik_terdeteksi_dan_dilewati(): void
+    {
+        $typed = $this->typedPurchase();
+
+        $this->fill(['Expense' => [
+            // Sama dengan ketikan: tanggal, barang, jumlah, harga — pemasoknya
+            // tidak ikut dibandingkan karena ketikan sering tidak mengisinya.
+            ['01/08/2026', 'Pak Budi', 'ayam ', 10, 'kg', 35_000, 0, 0, 350_000],
+            [null, 'Pak Budi', 'Cabai', 1, 'kg', 50_000, 0, 0, 50_000],
+        ]]);
+
+        $inspected = $this->sheetResult((new Importer(Carbon::parse('2026-08-01')))->inspect($this->path), 'Expense');
+
+        // Memeriksa tidak menyimpan apa pun.
+        $this->assertSame(1, Purchase::count());
+        $this->assertCount(1, $inspected['duplicates']);
+        $this->assertSame(2, $inspected['duplicates'][0]['line']);
+        $this->assertSame($typed->id, $inspected['duplicates'][0]['manual_id']);
+
+        // Tanpa pilihan dari pengguna, yang kemungkinan dobel dilewati.
+        $result = $this->sheetResult($this->import(), 'Expense');
+
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(2, Purchase::count());
+        $this->assertSame(350_000 + 50_000, (int) Purchase::sum('total'));
+    }
+
+    public function test_baris_dobel_yang_dipilih_tetap_masuk(): void
+    {
+        $this->typedPurchase();
+
+        $this->fill(['Expense' => [
+            ['01/08/2026', 'Pak Budi', 'Ayam', 10, 'kg', 35_000, 0, 0, 350_000],
+        ]]);
+
+        // Pengguna memutuskan ini transaksi yang berbeda: tidak ada yang dilewati.
+        $results = (new Importer(Carbon::parse('2026-08-01')))->skipping([])->import($this->path);
+
+        $this->assertSame(0, $this->sheetResult($results, 'Expense')['skipped']);
+        $this->assertSame(2, Purchase::count());
+    }
+
+    /** Dua baris kembar di berkas dan satu ketikan: hanya satu yang kemungkinan dobel. */
+    public function test_dobel_dipasangkan_satu_lawan_satu(): void
+    {
+        $this->typedPurchase(['item' => 'Aqua Galon', 'qty' => 1, 'price' => 20_000]);
+
+        $this->fill(['Expense' => [
+            ['01/08/2026', 'Bu Sari', 'Aqua Galon', 1, 'galon', 20_000, 0, 0, 20_000],
+            [null, 'Bu Sari', 'Aqua Galon', 1, 'galon', 20_000, 0, 0, 20_000],
+        ]]);
+
+        $result = $this->sheetResult($this->import(), 'Expense');
+
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(2, Purchase::count());
+    }
+
+    /** Pemasukan harian yang sudah diketik tidak ditimpa diam-diam. */
+    public function test_pemasukan_harian_yang_diketik_tidak_ditimpa_tanpa_dipilih(): void
+    {
+        DailyIncome::create(['date' => '2026-08-01', 'cash' => 1_000_000, 'source' => RecordSource::MANUAL]);
+
+        $this->fill(['Income' => [
+            ['01/08/2026', 0, 5_000_000, 0, 0, 0, 0, 5_000_000],
+            ['02/08/2026', 0, 2_000_000, 0, 0, 0, 0, 2_000_000],
+        ]]);
+
+        $result = $this->sheetResult($this->import(), 'Income');
+
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(1_000_000, (int) DailyIncome::whereDate('date', '2026-08-01')->value('cash'));
+        $this->assertSame(2, DailyIncome::count());
+    }
+
+    /** Impor ulang berkasnya sendiri bukan dobel: baris hasil impor tidak dibandingkan. */
+    public function test_impor_ulang_tidak_dianggap_dobel(): void
+    {
+        $this->fill(['Expense' => [
+            ['01/08/2026', 'Pak Budi', 'Ayam', 10, 'kg', 35_000, 0, 0, 350_000],
+        ]]);
+
+        $this->import();
+        $second = $this->sheetResult($this->import(), 'Expense');
+
+        $this->assertSame([], $second['duplicates']);
+        $this->assertSame(1, Purchase::count());
     }
 
     /* ----------------------------------------------------------- idempoten */

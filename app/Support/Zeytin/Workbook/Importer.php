@@ -4,6 +4,7 @@ namespace App\Support\Zeytin\Workbook;
 
 use App\Filament\Admin\Resources\Zeytin\Payrolls\PayrollResource;
 use App\Models\Supplier;
+use App\Support\Money;
 use App\Support\Zeytin\Channels;
 use App\Support\Zeytin\RecordSource;
 use Illuminate\Database\Eloquent\Model;
@@ -52,10 +53,24 @@ class Importer
     ];
 
     /**
-     * @param  Carbon|null  $payrollMonth  bulan untuk sheet Payroll; sheet itu
-     *                                     tidak menyebutkan bulannya sendiri.
+     * Baris yang dilewati karena sama dengan ketikan manual, per sheet;
+     * null berarti semua yang terdeteksi dilewati — pilihan paling aman
+     * untuk pemanggil yang tidak menanyakannya ke pengguna.
+     *
+     * @var array<string, array<int, string>>|null
      */
-    public function __construct(protected ?Carbon $payrollMonth = null)
+    protected ?array $skip = null;
+
+    /** Hanya membaca dan memeriksa, tidak menyimpan apa pun. */
+    protected bool $dryRun = false;
+
+    /**
+     * @param  Carbon|null  $month  bulan berkas ini: tanggal di sheet bertanggal
+     *                              harus di bulan ini, dan sheet Payroll — yang
+     *                              tidak menyebutkan bulannya sendiri — dicatat
+     *                              untuk bulan ini.
+     */
+    public function __construct(protected ?Carbon $month = null)
     {
         $this->numeric = [
             'qty', 'price', 'disc', 'tax', 'total',
@@ -65,7 +80,39 @@ class Importer
     }
 
     /**
-     * @return array<int, array{sheet: string, imported: int, replaced: int, range: string, error: string|null}>
+     * Membaca seluruh berkas tanpa menyimpan apa pun: hasilnya sama dengan
+     * import(), lengkap dengan tanggal di luar bulan dan baris yang sama
+     * dengan ketikan manual — untuk ditunjukkan ke pengguna sebelum
+     * datanya benar-benar masuk.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function inspect(string $path): array
+    {
+        $this->dryRun = true;
+
+        try {
+            return $this->import($path);
+        } finally {
+            $this->dryRun = false;
+        }
+    }
+
+    /**
+     * Baris kemungkinan dobel yang dilewati, per sheet, berupa kunci dari
+     * hasil inspect(). Yang tidak disebut tetap dimasukkan.
+     *
+     * @param  array<string, array<int, string>>  $skip
+     */
+    public function skipping(array $skip): static
+    {
+        $this->skip = $skip;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, array{sheet: string, imported: int, replaced: int, skipped: int, range: string, error: string|null, rows: array<int, array{line: int, date: string}>, duplicates: array<int, array<string, mixed>>}>
      */
     public function import(string $path): array
     {
@@ -140,13 +187,16 @@ class Importer
      */
     protected function importSheet(?Worksheet $sheet, SheetSpec $spec): array
     {
-        $blank = ['sheet' => $spec->sheet, 'imported' => 0, 'replaced' => 0, 'range' => '', 'error' => null];
+        $blank = [
+            'sheet' => $spec->sheet, 'imported' => 0, 'replaced' => 0, 'skipped' => 0,
+            'range' => '', 'error' => null, 'rows' => [], 'duplicates' => [],
+        ];
 
         if (! $sheet) {
             return [...$blank, 'error' => 'sheet_missing'];
         }
 
-        if ($spec->needsMonth && ! $this->payrollMonth) {
+        if ($spec->needsMonth && ! $this->month) {
             return [...$blank, 'error' => 'month_missing'];
         }
 
@@ -180,15 +230,189 @@ class Importer
             return [...$blank, 'error' => 'empty'];
         }
 
-        $replaced = $this->prune($spec, $records) + $this->persist($spec, $records);
+        $range = $this->dateRange($spec, $records);
+
+        /*
+         * Tanggal di luar bulan berkas menolak seluruh sheet, bukan cuma
+         * barisnya. "18/8/2028" di berkas Agustus 2026 hampir pasti salah
+         * ketik tahun; memasukkan sisanya lalu membuang satu baris diam-diam
+         * membuat total bulan itu kurang tanpa ada yang sadar.
+         */
+        if ($outside = $this->outsideMonth($spec, $records)) {
+            return [...$blank, 'range' => $range, 'error' => 'out_of_month', 'rows' => $outside];
+        }
+
+        $duplicates = $this->manualMatches($spec, $records);
+        $records = array_map(fn (array $record) => Arr::except($record, ['_line']), $records);
+
+        if ($this->dryRun) {
+            return [...$blank, 'imported' => count($records), 'range' => $range, 'duplicates' => $duplicates];
+        }
+
+        $skip = $this->skip === null
+            ? array_column($duplicates, 'key')
+            : ($this->skip[$spec->sheet] ?? []);
+
+        $kept = array_values(array_filter(
+            $records,
+            fn (array $record) => ! in_array($this->recordKey($spec, $record), $skip, true),
+        ));
+
+        $replaced = $kept ? $this->prune($spec, $kept) + $this->persist($spec, $kept) : 0;
 
         return [
-            'sheet' => $spec->sheet,
-            'imported' => count($records),
+            ...$blank,
+            'imported' => count($kept),
             'replaced' => $replaced,
-            'range' => $this->dateRange($spec, $records),
-            'error' => null,
+            'skipped' => count($records) - count($kept),
+            'range' => $range,
+            'duplicates' => $duplicates,
         ];
+    }
+
+    /* --------------------------------------------------- pemeriksaan isi */
+
+    /**
+     * Baris yang tanggalnya di luar bulan berkas, dengan nomor barisnya di
+     * Excel. Hanya untuk sheet yang memang sebulan; tagihan di Outstanding
+     * INV boleh dipesan bulan-bulan sebelumnya.
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     * @return array<int, array{line: int, date: string}>
+     */
+    protected function outsideMonth(SheetSpec $spec, array $records): array
+    {
+        if (! $spec->sameMonth || ! $this->month || ! ($column = $spec->dateColumn())) {
+            return [];
+        }
+
+        $outside = [];
+
+        foreach ($records as $record) {
+            $date = $record[$column] ?? null;
+
+            if ($date instanceof Carbon && ! $date->isSameMonth($this->month)) {
+                $outside[] = ['line' => $record['_line'], 'date' => $date->toDateString()];
+            }
+        }
+
+        return $outside;
+    }
+
+    /**
+     * Baris berkas yang isinya sama dengan baris yang diketik orang lewat
+     * halaman: tanggal, barang, jumlah, dan harga yang sama (lihat
+     * SheetSpec::$matchManual). Pengimpor tidak pernah menyentuh ketikan
+     * orang, jadi tanpa pemeriksaan ini transaksi yang dicatat di dua tempat
+     * masuk dua kali dan totalnya membengkak.
+     *
+     * Dipasangkan satu lawan satu: dua baris kembar di berkas dan satu
+     * ketikan yang sama berarti hanya satu yang kemungkinan dobel.
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     * @return array<int, array{key: string, line: int, date: string, label: string, manual_id: int}>
+     */
+    protected function manualMatches(SheetSpec $spec, array $records): array
+    {
+        if (! $spec->matchManual || ! $records) {
+            return [];
+        }
+
+        /** @var class-string<Model> $model */
+        $model = $spec->model;
+        $query = $model::query()->where('source', RecordSource::MANUAL);
+
+        if ($column = $spec->dateColumn()) {
+            $dates = $this->dateValues($spec, $records);
+
+            if (! $dates) {
+                return [];
+            }
+
+            $query->whereBetween($column, [min($dates), max($dates)]);
+        }
+
+        $pool = [];
+
+        foreach ($query->orderBy('id')->get() as $row) {
+            $pool[$this->matchKey($spec, $row->getAttributes())][] = $row->getKey();
+        }
+
+        $matches = [];
+
+        foreach ($records as $record) {
+            $key = $this->matchKey($spec, $record);
+
+            if (empty($pool[$key])) {
+                continue;
+            }
+
+            $date = $record[$spec->dateColumn() ?? ''] ?? null;
+
+            $matches[] = [
+                'key' => $this->recordKey($spec, $record),
+                'line' => $record['_line'],
+                'date' => $date instanceof Carbon ? $date->toDateString() : '',
+                'label' => $this->describe($spec, $record),
+                'manual_id' => array_shift($pool[$key]),
+            ];
+        }
+
+        return $matches;
+    }
+
+    /** @param  array<string, mixed>  $values */
+    protected function matchKey(SheetSpec $spec, array $values): string
+    {
+        return implode('|', array_map(function (string $field) use ($values) {
+            $value = $values[$field] ?? null;
+
+            return match (true) {
+                $value instanceof Carbon => $value->toDateString(),
+                is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value) => substr($value, 0, 10),
+                is_numeric($value) => rtrim(rtrim(number_format((float) $value, 4, '.', ''), '0'), '.'),
+                default => mb_strtolower(trim((string) $value)),
+            };
+        }, $spec->matchManual));
+    }
+
+    /** Kunci satu baris berkas: tanggalnya untuk sheet sebaris-per-tanggal, nomor impornya untuk yang lain. */
+    protected function recordKey(SheetSpec $spec, array $record): string
+    {
+        if ($spec->uniqueBy) {
+            $value = $record[$spec->uniqueBy] ?? '';
+
+            return $value instanceof Carbon ? $value->toDateString() : (string) $value;
+        }
+
+        return (string) ($record['import_key'] ?? '');
+    }
+
+    /** "Pak Budi · Ayam · 10 × Rp 35.000" — cukup untuk mengenali barisnya di layar. */
+    protected function describe(SheetSpec $spec, array $record): string
+    {
+        $parts = array_filter([
+            $record['vendor'] ?? null,
+            $record['item'] ?? $record['name'] ?? null,
+        ]);
+
+        if (isset($record['qty'], $record['price'])) {
+            $parts[] = rtrim(rtrim(number_format((float) $record['qty'], 2, ',', '.'), '0'), ',').' × '.Money::format((int) $record['price']);
+        } elseif (isset($record['total'])) {
+            $parts[] = Money::format((int) $record['total']);
+        } elseif (isset($record['grand_total'])) {
+            $parts[] = Money::format((int) $record['grand_total']);
+        } elseif ($spec->uniqueBy === 'date') {
+            $sales = 0;
+
+            foreach (Channels::inSales() as $channel) {
+                $sales += (int) ($record[$channel] ?? 0);
+            }
+
+            $parts[] = __('zeytin.import.review.income', ['amount' => Money::format($sales)]);
+        }
+
+        return implode(' · ', $parts);
     }
 
     /**
@@ -300,7 +524,7 @@ class Importer
             }
 
             if ($spec->needsMonth) {
-                $row['month'] = $this->payrollMonth->copy()->startOfMonth();
+                $row['month'] = $this->month->copy()->startOfMonth();
             }
 
             if ($spec->hasSections) {
@@ -324,6 +548,9 @@ class Importer
 
                 $row['import_key'] = $key;
             }
+
+            // Nomor baris di Excel, untuk pesan ke pengguna; dibuang sebelum disimpan.
+            $row['_line'] = $r + 1;
 
             $records[] = $row;
         }

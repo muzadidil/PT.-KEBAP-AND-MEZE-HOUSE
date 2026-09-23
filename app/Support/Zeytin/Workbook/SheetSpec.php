@@ -44,6 +44,9 @@ class SheetSpec
      * @param  bool  $needsMonth  bulannya ditanyakan, tidak ada di sheet
      * @param  bool  $hasSections  ada baris penanda bagian di tengah data
      * @param  array<int, string>  $skipWhenEmpty  baris dilewati kalau semua kolom ini kosong atau nol
+     * @param  bool  $sameMonth  semua tanggalnya harus di bulan berkas yang diimpor
+     * @param  array<int, string>  $matchManual  kolom yang, kalau sama semua, berarti baris ini
+     *                                          sudah diketik orang lewat halaman
      */
     public function __construct(
         public string $sheet,
@@ -57,6 +60,8 @@ class SheetSpec
         public bool $needsMonth = false,
         public bool $hasSections = false,
         public array $skipWhenEmpty = [],
+        public bool $sameMonth = false,
+        public array $matchManual = [],
     ) {}
 
     /** @return array<int, self> */
@@ -85,6 +90,9 @@ class SheetSpec
                 // penuh di depan; tanpa ini, hari yang belum diisi akan
                 // menimpa hari yang sudah diketik di aplikasi dengan nol.
                 skipWhenEmpty: Channels::keys(),
+                sameMonth: true,
+                // Satu hari satu baris: tanggal yang sama berarti menimpa ketikan hari itu.
+                matchManual: ['date'],
             ),
 
             new self(
@@ -105,6 +113,9 @@ class SheetSpec
                 gate: 'item',
                 keyFrom: ['date', 'vendor', 'item', 'qty', 'price'],
                 inheritDate: true,
+                sameMonth: true,
+                // Tanpa pemasok: ketikan di halaman sering tidak mengisinya.
+                matchManual: ['date', 'item', 'qty', 'price'],
             ),
 
             new self(
@@ -126,6 +137,8 @@ class SheetSpec
                 gate: 'item',
                 keyFrom: ['date', 'vendor', 'item', 'qty', 'price', 'total'],
                 inheritDate: true,
+                sameMonth: true,
+                matchManual: ['date', 'item', 'total'],
             ),
 
             new self(
@@ -147,6 +160,9 @@ class SheetSpec
                 gate: 'item',
                 keyFrom: ['date', 'vendor', 'item', 'qty', 'price'],
                 inheritDate: true,
+                // Tidak dibatasi sebulan: tagihan yang belum lunas dari bulan
+                // sebelumnya memang masih ikut di daftar ini.
+                matchManual: ['date', 'item', 'qty', 'price'],
             ),
 
             new self(
@@ -189,6 +205,7 @@ class SheetSpec
                 // pengguna, bukan ditebak.
                 needsMonth: true,
                 hasSections: true,
+                matchManual: ['month', 'name'],
             ),
         ];
     }

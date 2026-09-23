@@ -49,9 +49,10 @@ class SpecSource implements ExcelSource
         return true;
     }
 
+    /** Payroll dicatat untuk bulan itu; sheet bertanggal diperiksa tanggalnya terhadap bulan itu. */
     public function importNeedsMonth(): bool
     {
-        return $this->spec()->needsMonth;
+        return $this->spec()->needsMonth || $this->spec()->sameMonth;
     }
 
     public function template(?Carbon $month = null): Spreadsheet
@@ -73,13 +74,34 @@ class SpecSource implements ExcelSource
             return new ImportReport;
         }
 
+        if ($result['error'] === 'out_of_month') {
+            return ImportReport::failed(array_map(fn (array $row) => __('zeytin.import.error.row_out_of_month', [
+                'row' => $row['line'],
+                'date' => Carbon::parse($row['date'])->translatedFormat('j M Y'),
+                'month' => $month?->translatedFormat('F Y'),
+            ]), $result['rows']));
+        }
+
         if ($result['error']) {
             return ImportReport::failed([__('zeytin.import.error.'.$result['error'])]);
         }
 
+        /*
+         * Di sini tidak ada layar untuk bertanya, jadi baris yang sama dengan
+         * ketikan manual selalu dilewati — pilihan yang tidak mungkin
+         * menggandakan total — dan nomor barisnya disebutkan. Untuk memilih
+         * satu per satu, pakai halaman Impor Excel.
+         */
+        $notes = array_filter([
+            $result['range'] ? __('excel.result.range', ['range' => $result['range']]) : null,
+            $result['skipped'] ? __('zeytin.import.review.skipped_rows', [
+                'rows' => implode(', ', array_column($result['duplicates'], 'line')),
+            ]) : null,
+        ]);
+
         return new ImportReport(
-            counts: ['imported' => $result['imported'], 'replaced' => $result['replaced']],
-            note: $result['range'] ? __('excel.result.range', ['range' => $result['range']]) : null,
+            counts: ['imported' => $result['imported'], 'replaced' => $result['replaced'], 'manual' => $result['skipped']],
+            note: $notes ? implode(' ', $notes) : null,
         );
     }
 }

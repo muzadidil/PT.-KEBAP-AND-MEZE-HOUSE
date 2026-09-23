@@ -13,6 +13,7 @@ use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
 use App\Filament\Admin\Resources\Suppliers\SupplierResource;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\Pages\ManagePurchases;
+use App\Filament\Admin\Resources\Zeytin\OutstandingBills\OutstandingBillResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\PurchaseResource;
 use App\Models\Category;
 use App\Models\Employee;
@@ -27,6 +28,7 @@ use App\Models\Supplier;
 use App\Support\Excel\ExcelSheet;
 use App\Support\Excel\ExcelSource;
 use App\Support\Excel\ImportReport;
+use App\Support\Zeytin\RecordSource;
 use App\Support\Zeytin\Workbook\Cells;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
@@ -413,7 +415,47 @@ class ExcelImportTest extends TestCase
     {
         $this->assertInstanceOf(ExcelSheet::class, SupplierResource::excel());
         $this->assertTrue(PurchaseResource::excel()->templateNeedsMonth());
-        $this->assertFalse(PurchaseResource::excel()->importNeedsMonth());
+        // Tanggal belanja diperiksa terhadap bulan yang dipilih saat mengunggah.
+        $this->assertTrue(PurchaseResource::excel()->importNeedsMonth());
+        $this->assertFalse(OutstandingBillResource::excel()->importNeedsMonth());
         $this->assertFalse(SupplierResource::excel()->templateNeedsMonth());
+    }
+
+    /* ------------------------------------------- tombol impor pembukuan */
+
+    public function test_tombol_impor_belanja_menolak_tanggal_di_luar_bulan(): void
+    {
+        $report = $this->import(PurchaseResource::excel(), [
+            ['01/08/2026', 'Pak Budi', 'Ayam', 1, 'kg', 35_000, 0, 0, 35_000],
+            ['18/8/2028', 'Pak Budi', 'Cabai', 1, 'kg', 50_000, 0, 0, 50_000],
+        ], 'Expense');
+
+        $this->assertFalse($report->ok());
+        $this->assertSame([__('zeytin.import.error.row_out_of_month', [
+            'row' => 3,
+            'date' => Carbon::parse('2028-08-18')->translatedFormat('j M Y'),
+            'month' => Carbon::parse('2026-08-01')->translatedFormat('F Y'),
+        ])], $report->errors);
+        $this->assertSame(0, Purchase::count());
+    }
+
+    /** Tidak ada layar untuk bertanya, jadi yang sama dengan ketikan dilewati dan disebutkan barisnya. */
+    public function test_tombol_impor_belanja_melewati_yang_sudah_diketik(): void
+    {
+        Purchase::create([
+            'date' => '2026-08-01', 'item' => 'Ayam', 'qty' => 10, 'price' => 35_000,
+            'source' => RecordSource::MANUAL,
+        ]);
+
+        $report = $this->import(PurchaseResource::excel(), [
+            ['01/08/2026', 'Pak Budi', 'Ayam', 10, 'kg', 35_000, 0, 0, 350_000],
+            [null, 'Pak Budi', 'Cabai', 1, 'kg', 50_000, 0, 0, 50_000],
+        ], 'Expense');
+
+        $this->assertTrue($report->ok());
+        $this->assertSame(1, $report->count('imported'));
+        $this->assertSame(1, $report->count('manual'));
+        $this->assertStringContainsString(__('zeytin.import.review.skipped_rows', ['rows' => '2']), (string) $report->note);
+        $this->assertSame(2, Purchase::count());
     }
 }

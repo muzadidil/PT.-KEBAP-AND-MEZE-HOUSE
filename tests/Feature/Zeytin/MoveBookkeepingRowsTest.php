@@ -36,8 +36,15 @@ class MoveBookkeepingRowsTest extends TestCase
         parent::tearDown();
     }
 
-    /** @param  array<string, array<int, array<int, mixed>>>  $sheets */
-    protected function importBook(array $sheets, string $month = '2026-08-01'): void
+    /**
+     * Tanpa bulan, tanggal tidak diperiksa terhadap bulan berkas — cara
+     * menciptakan lagi data salah tahun yang dulu bisa masuk, sebelum
+     * pengimpor menolaknya. Data lama seperti itulah yang dibereskan
+     * perintah zeytin:pindah.
+     *
+     * @param  array<string, array<int, array<int, mixed>>>  $sheets
+     */
+    protected function importBook(array $sheets, ?string $month = '2026-08-01'): void
     {
         $book = (new TemplateBuilder)->build();
 
@@ -48,7 +55,7 @@ class MoveBookkeepingRowsTest extends TestCase
         (new Xlsx($book))->save($this->path);
         $book->disconnectWorksheets();
 
-        (new Importer(Carbon::parse($month)))->import($this->path);
+        (new Importer($month ? Carbon::parse($month) : null))->import($this->path);
     }
 
     /** Kejadian nyata di berkas Agustus: "18/8/2028" di sheet Expense. */
@@ -59,7 +66,7 @@ class MoveBookkeepingRowsTest extends TestCase
             [null, '', 'Es Batu', 1, '', 12_000, 0, 0, 12_000],
         ];
 
-        $this->importBook(['Expense' => $rows('18/8/2028')]);
+        $this->importBook(['Expense' => $rows('18/8/2028')], month: null);
 
         $this->artisan('zeytin:pindah', ['jenis' => 'belanja', 'dari' => '2028-08-18', 'ke' => '2026-08-18', '--paksa' => true])
             ->assertSuccessful();
@@ -99,7 +106,7 @@ class MoveBookkeepingRowsTest extends TestCase
         $this->importBook(['Expense' => [
             ['18/8/2026', '', 'Aqua Galon', 1, '', 66_000, 0, 0, 66_000],
             ['18/8/2028', '', 'Aqua Galon', 1, '', 66_000, 0, 0, 66_000],
-        ]]);
+        ]], month: null);
 
         $this->artisan('zeytin:pindah', ['jenis' => 'belanja', 'dari' => '2028-08-18', 'ke' => '2026-08-18', '--paksa' => true])
             ->assertSuccessful();

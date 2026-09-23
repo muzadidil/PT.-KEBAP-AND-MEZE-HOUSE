@@ -81,6 +81,7 @@ return [
         'skipped' => ':count sudah ada',
         'imported' => ':count baris masuk',
         'replaced' => ':count diganti',
+        'manual' => ':count dilewati (sudah diketik manual)',
     ],
 
     'result' => [

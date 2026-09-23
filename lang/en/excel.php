@@ -81,6 +81,7 @@ return [
         'skipped' => ':count already there',
         'imported' => ':count row imported|:count rows imported',
         'replaced' => ':count replaced',
+        'manual' => ':count skipped (already typed in by hand)',
     ],
 
     'result' => [

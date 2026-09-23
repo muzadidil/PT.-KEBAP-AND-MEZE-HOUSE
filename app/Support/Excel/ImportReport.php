@@ -35,7 +35,7 @@ final class ImportReport
     /** Baris yang benar-benar masuk atau berubah; yang dilewati tidak dihitung. */
     public function changed(): int
     {
-        return array_sum(array_diff_key($this->counts, ['skipped' => true]));
+        return array_sum(array_diff_key($this->counts, ['skipped' => true, 'manual' => true]));
     }
 
     public function count(string $kind): int
