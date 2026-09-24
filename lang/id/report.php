@@ -29,6 +29,11 @@ return [
         'tax' => 'Sumber: menu Pengeluaran, kategori Pajak. Belum termasuk di Buku Besar Bulanan.',
     ],
     'export_csv' => 'Unduh CSV',
+    'export_excel' => 'Unduh Excel',
+    'pdf' => 'PDF',
+    'all_dates' => 'Seluruh tanggal',
+    'yes' => 'Ya',
+    'no' => 'Belum',
     'grand_total' => 'Total keseluruhan',
     'as_of' => 'Per tanggal',
 

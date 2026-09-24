@@ -29,6 +29,11 @@ return [
         'tax' => 'Source: the Expenses menu, Tax category. Not yet part of the Monthly Ledger.',
     ],
     'export_csv' => 'Download CSV',
+    'export_excel' => 'Download Excel',
+    'pdf' => 'PDF',
+    'all_dates' => 'All dates',
+    'yes' => 'Yes',
+    'no' => 'Not yet',
     'grand_total' => 'Grand total',
     'as_of' => 'As of',
 

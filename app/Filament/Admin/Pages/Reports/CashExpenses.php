@@ -56,4 +56,19 @@ class CashExpenses extends ExpenseReport
                 ->alignEnd(),
         ];
     }
+
+    /** Di layar pemasok ditulis di bawah nama barang; di berkas ia kolom sendiri. */
+    protected function exportDetails(): array
+    {
+        return [
+            ['label' => __('zeytin.field.item'), 'value' => fn (Purchase $row) => $row->item],
+            ['label' => __('zeytin.field.vendor'), 'value' => fn (Purchase $row) => $row->vendor],
+            ['label' => __('zeytin.field.qty'), 'value' => fn (Purchase $row) => trim($row->qty.' '.$row->unit)],
+        ];
+    }
+
+    public function searchColumns(): array
+    {
+        return ['item', 'vendor'];
+    }
 }

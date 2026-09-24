@@ -663,6 +663,17 @@
     background: var(--pos-surface);
 }
 
+/*
+ * Tombol unduhan di halaman yang penyaringnya sudah milik tabel Filament —
+ * tanpa kotak .filters, yang di sana akan berdiri kosong di sisi kiri.
+ */
+.report__actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
 .filters__field {
     display: flex;
     flex-direction: column;

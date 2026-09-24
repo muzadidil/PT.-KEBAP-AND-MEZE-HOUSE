@@ -79,4 +79,30 @@ class OnlineTransfers extends ExpenseReport
                 ->options(SupplierTransferResource::statuses()),
         ];
     }
+
+    protected function exportDetails(): array
+    {
+        return [
+            ['label' => __('zeytin.field.item'), 'value' => fn (SupplierTransfer $row) => $row->item],
+            ['label' => __('zeytin.field.vendor'), 'value' => fn (SupplierTransfer $row) => $row->vendor],
+            ['label' => __('zeytin.field.method'), 'value' => fn (SupplierTransfer $row) => $row->method],
+        ];
+    }
+
+    protected function exportTrailing(): array
+    {
+        return [
+            ['label' => __('zeytin.field.status'), 'value' => fn (SupplierTransfer $row) => $row->status],
+        ];
+    }
+
+    public function filterColumns(): array
+    {
+        return ['status'];
+    }
+
+    public function searchColumns(): array
+    {
+        return ['item', 'vendor'];
+    }
 }

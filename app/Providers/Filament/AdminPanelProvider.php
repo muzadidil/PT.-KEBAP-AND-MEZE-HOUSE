@@ -69,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 Route::get('pdf/buku-besar', [PdfController::class, 'ledger'])->name('pdf.ledger');
                 Route::get('pdf/slip-gaji/{payslip}', [PdfController::class, 'payslip'])->name('pdf.payslip');
                 Route::get('pdf/progres-rapat', [PdfController::class, 'meeting'])->name('pdf.meeting');
+                Route::get('pdf/laporan/{report}', [PdfController::class, 'expenses'])->name('pdf.expenses');
             })
             ->userMenuItems(LanguageSwitcher::menuItems())
             ->middleware([

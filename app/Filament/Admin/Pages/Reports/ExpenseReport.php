@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages\Reports;
 
 use App\Filament\Admin\Concerns\ForAdmin;
 use App\Support\Money;
+use App\Support\Reports\ListExport;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
@@ -15,6 +16,9 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
 /**
@@ -70,6 +74,154 @@ abstract class ExpenseReport extends Page implements HasTable
     protected function extraFilters(): array
     {
         return [];
+    }
+
+    /* ----------------------------------------------------------- unduhan */
+
+    /**
+     * Kolom unduhan Excel dan PDF. Sengaja terpisah dari kolom tabel: di
+     * layar pemasok ditulis kecil di bawah nama barang, sedangkan di berkas
+     * ia harus jadi kolomnya sendiri supaya bisa disaring dan dijumlahkan.
+     *
+     * @return array<int, array{label: string, value: callable, money?: bool, date?: bool}>
+     */
+    public function exportColumns(): array
+    {
+        $date = $this->dateColumn();
+        $amount = $this->amountColumn();
+
+        return [
+            ['label' => __('field.date'), 'value' => fn ($row) => $row->{$date}, 'date' => true],
+            ...$this->exportDetails(),
+            ['label' => __('field.amount'), 'value' => fn ($row) => (int) $row->{$amount}, 'money' => true],
+            ...$this->exportTrailing(),
+        ];
+    }
+
+    /** @return array<int, array{label: string, value: callable, money?: bool, date?: bool}> */
+    abstract protected function exportDetails(): array;
+
+    /** @return array<int, array{label: string, value: callable, money?: bool, date?: bool}> */
+    protected function exportTrailing(): array
+    {
+        return [];
+    }
+
+    /**
+     * Kolom yang dipakai penyaring tambahan, supaya unduhan bisa menerapkan
+     * penyaring yang sama lewat alamat PDF-nya.
+     *
+     * @return array<int, string>
+     */
+    public function filterColumns(): array
+    {
+        return [];
+    }
+
+    /**
+     * Kolom yang ikut dicari kotak pencarian; dipakai PDF supaya isinya sama
+     * dengan yang sedang tampil.
+     *
+     * @return array<int, string>
+     */
+    public function searchColumns(): array
+    {
+        return [];
+    }
+
+    /**
+     * Baris laporan untuk rentang, penyaring, dan pencarian yang diberikan —
+     * dipakai PDF, yang dibuka di tab baru dan karena itu tidak bisa membaca
+     * keadaan tabel di layar.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Model>
+     */
+    public function filteredQuery(array $filters): Builder
+    {
+        $date = $this->dateColumn();
+
+        $query = $this->baseQuery()
+            ->when($filters['from'] ?? null, fn ($q, $value) => $q->whereDate($date, '>=', $value))
+            ->when($filters['to'] ?? null, fn ($q, $value) => $q->whereDate($date, '<=', $value));
+
+        foreach ($this->filterColumns() as $column) {
+            $value = $filters[$column] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $query->where($column, $value);
+            }
+        }
+
+        if (($search = trim((string) ($filters['search'] ?? ''))) !== '' && $this->searchColumns()) {
+            $query->where(function (Builder $q) use ($search) {
+                foreach ($this->searchColumns() as $column) {
+                    $q->orWhere($column, 'like', '%'.$search.'%');
+                }
+            });
+        }
+
+        return $query->orderByDesc($date)->orderByDesc('id');
+    }
+
+    /**
+     * Rentang, penyaring, dan pencarian yang sedang aktif di layar.
+     *
+     * @return array<string, mixed>
+     */
+    public function currentFilters(): array
+    {
+        $period = $this->tableFilters['period'] ?? [];
+
+        $filters = [
+            'from' => $period['from'] ?? null,
+            'to' => $period['until'] ?? null,
+            'search' => $this->tableSearch ?: null,
+        ];
+
+        foreach ($this->filterColumns() as $column) {
+            $filters[$column] = $this->tableFilters[$column]['value'] ?? null;
+        }
+
+        return array_filter($filters, fn ($value) => $value !== null && $value !== '');
+    }
+
+    public function pdfUrl(): string
+    {
+        return route('filament.admin.pdf.expenses', [
+            'report' => static::reportKey(),
+            ...$this->currentFilters(),
+        ]);
+    }
+
+    /** Nama laporan di alamat PDF; lihat App\Http\Controllers\PdfController. */
+    public static function reportKey(): string
+    {
+        return str(class_basename(static::class))->kebab()->toString();
+    }
+
+    /**
+     * Unduhan Excel dibuat dari kueri tabel yang sedang tampil, jadi
+     * penyaring, pencarian, dan urutan yang dipilih ikut apa adanya.
+     */
+    public function exportExcel(): StreamedResponse
+    {
+        $export = new ListExport(
+            title: $this->getTitle(),
+            source: $this->source(),
+            rows: $this->getFilteredSortedTableQuery()->get(),
+            columns: $this->exportColumns(),
+            filters: $this->currentFilters(),
+        );
+
+        $book = $export->build();
+
+        return response()->streamDownload(function () use ($book) {
+            (new Xlsx($book))->save('php://output');
+            $book->disconnectWorksheets();
+        }, $export->filename(), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function table(Table $table): Table

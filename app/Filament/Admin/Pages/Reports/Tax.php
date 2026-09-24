@@ -88,4 +88,31 @@ class Tax extends ExpenseReport
             TernaryFilter::make('is_paid')->label(__('field.is_paid')),
         ];
     }
+
+    protected function exportDetails(): array
+    {
+        return [
+            ['label' => __('field.description'), 'value' => fn (Expense $row) => $row->description],
+            ['label' => __('nav.suppliers'), 'value' => fn (Expense $row) => $row->supplier?->name],
+            ['label' => __('field.method'), 'value' => fn (Expense $row) => $row->method],
+            ['label' => __('field.due_on'), 'value' => fn (Expense $row) => $row->due_on, 'date' => true],
+        ];
+    }
+
+    protected function exportTrailing(): array
+    {
+        return [
+            ['label' => __('field.is_paid'), 'value' => fn (Expense $row) => $row->is_paid ? __('report.yes') : __('report.no')],
+        ];
+    }
+
+    public function filterColumns(): array
+    {
+        return ['is_paid'];
+    }
+
+    public function searchColumns(): array
+    {
+        return ['description'];
+    }
 }
