@@ -13,10 +13,12 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
@@ -153,10 +155,19 @@ abstract class ExpenseReport extends Page implements HasTable
             }
         }
 
-        if (($search = trim((string) ($filters['search'] ?? ''))) !== '' && $this->searchColumns()) {
-            $query->where(function (Builder $q) use ($search) {
+        if (($search = trim((string) ($filters['search'] ?? ''))) !== '') {
+            $query->where(function (Builder $q) use ($search, $date) {
                 foreach ($this->searchColumns() as $column) {
                     $q->orWhere($column, 'like', '%'.$search.'%');
+                }
+
+                // Tanggal dicari sama seperti di layar; lihat table().
+                if ($day = static::searchDate($search)) {
+                    $q->orWhereDate($date, $day);
+                } elseif ($month = static::searchMonth($search)) {
+                    $q->orWhere(fn (Builder $inner) => $inner
+                        ->whereYear($date, $month->year)
+                        ->whereMonth($date, $month->month));
                 }
             });
         }
@@ -186,6 +197,67 @@ abstract class ExpenseReport extends Page implements HasTable
         return array_filter($filters, fn ($value) => $value !== null && $value !== '');
     }
 
+    /**
+     * Pintasan rentang: sehari, sepekan, sebulan. Tanggalnya tetap bisa
+     * diketik sendiri di isian di atas tabel — pintasan ini hanya mengisinya.
+     */
+    public function applyPeriod(string $preset): void
+    {
+        $today = Carbon::today();
+
+        [$from, $until] = match ($preset) {
+            'today' => [$today->copy(), $today->copy()],
+            'yesterday' => [$today->copy()->subDay(), $today->copy()->subDay()],
+            'last_7' => [$today->copy()->subDays(6), $today->copy()],
+            'last_30' => [$today->copy()->subDays(29), $today->copy()],
+            'this_month' => [$today->copy()->startOfMonth(), $today->copy()],
+            'last_month' => [
+                $today->copy()->subMonthNoOverflow()->startOfMonth(),
+                $today->copy()->subMonthNoOverflow()->endOfMonth(),
+            ],
+            'this_year' => [$today->copy()->startOfYear(), $today->copy()],
+            // "Semua": rentangnya dikosongkan, bukan dipasang selebar-lebarnya.
+            default => [null, null],
+        };
+
+        $this->tableFilters['period'] = [
+            'from' => $from?->toDateString(),
+            'until' => $until?->toDateString(),
+        ];
+
+        $this->updatedTableFilters();
+    }
+
+    /**
+     * Tanggal dari kotak pencarian: "15/08/2026", "15-8-2026", "2026-08-15".
+     * Hari ditulis lebih dulu, sama seperti yang tampil di kolom tanggal.
+     */
+    public static function searchDate(string $search): ?Carbon
+    {
+        $search = trim($search);
+
+        foreach (['d/m/Y', 'd-m-Y', 'j/n/Y', 'j-n-Y', 'Y-m-d'] as $format) {
+            if (Carbon::hasFormat($search, $format)) {
+                return Carbon::createFromFormat('!'.$format, $search);
+            }
+        }
+
+        return null;
+    }
+
+    /** Satu bulan penuh dari kotak pencarian: "08/2026" atau "2026-08". */
+    public static function searchMonth(string $search): ?Carbon
+    {
+        $search = trim($search);
+
+        foreach (['m/Y', 'n/Y', 'Y-m'] as $format) {
+            if (Carbon::hasFormat($search, $format)) {
+                return Carbon::createFromFormat('!'.$format, $search)->startOfMonth();
+            }
+        }
+
+        return null;
+    }
     public function pdfUrl(): string
     {
         return route('filament.admin.pdf.expenses', [
@@ -235,7 +307,17 @@ abstract class ExpenseReport extends Page implements HasTable
                 TextColumn::make($date)
                     ->label(__('field.date'))
                     ->date('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    // Mengetik tanggal di kotak pencarian menyaring ke hari itu;
+                    // "08/2026" menyaring ke satu bulan. Yang bukan tanggal tidak
+                    // boleh mencocoki semua baris, jadi dipadamkan dengan 1 = 0.
+                    ->searchable(query: fn (Builder $query, string $search) => match (true) {
+                        (bool) ($day = static::searchDate($search)) => $query->whereDate($date, $day),
+                        (bool) ($month = static::searchMonth($search)) => $query
+                            ->whereYear($date, $month->year)
+                            ->whereMonth($date, $month->month),
+                        default => $query->whereRaw('1 = 0'),
+                    }),
 
                 ...$this->detailColumns(),
 
@@ -277,6 +359,14 @@ abstract class ExpenseReport extends Page implements HasTable
 
                 ...$this->extraFilters(),
             ])
+            // Rentang tanggalnya isian yang paling sering dipakai; di balik ikon
+            // corong ia tidak terlihat, dan laporan dibaca apa adanya sebulan
+            // penuh tanpa ada yang sadar rentangnya bisa diubah.
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(3)
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->searchPlaceholder(__('report.search_placeholder'))
             ->emptyStateHeading(__('report.no_data'));
     }
 }

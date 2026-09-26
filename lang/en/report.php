@@ -32,6 +32,8 @@ return [
     'export_excel' => 'Download Excel',
     'pdf' => 'PDF',
     'all_dates' => 'All dates',
+    'search_placeholder' => 'Search item, vendor or date (15/08/2026)…',
+    'period_shortcut' => 'Period',
     'yes' => 'Yes',
     'no' => 'Not yet',
     'grand_total' => 'Grand total',
@@ -39,6 +41,8 @@ return [
 
     'preset' => [
         'today' => 'Today',
+        'yesterday' => 'Yesterday',
+        'all' => 'All',
         'last_year' => 'Last year',
         'this_month' => 'This month',
         'last_month' => 'Last month',

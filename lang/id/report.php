@@ -32,6 +32,8 @@ return [
     'export_excel' => 'Unduh Excel',
     'pdf' => 'PDF',
     'all_dates' => 'Seluruh tanggal',
+    'search_placeholder' => 'Cari barang, pemasok, atau tanggal (15/08/2026)…',
+    'period_shortcut' => 'Periode',
     'yes' => 'Ya',
     'no' => 'Belum',
     'grand_total' => 'Total keseluruhan',
@@ -39,6 +41,8 @@ return [
 
     'preset' => [
         'today' => 'Hari ini',
+        'yesterday' => 'Kemarin',
+        'all' => 'Semua',
         'last_year' => 'Tahun lalu',
         'this_month' => 'Bulan ini',
         'last_month' => 'Bulan lalu',

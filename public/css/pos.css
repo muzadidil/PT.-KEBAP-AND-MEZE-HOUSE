@@ -1463,3 +1463,19 @@
         border-left-color: #d1d5db;
     }
 }
+
+/*
+ * Baris pintasan periode dan unduhan di laporan berbentuk daftar: pintasan
+ * di kiri, unduhan di kanan, dan menumpuk sendiri di layar sempit.
+ */
+.report__actions--split {
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+}
+
+.report__actions-label {
+    color: var(--pos-text-muted);
+    font-size: .8125rem;
+    margin-right: .125rem;
+}
