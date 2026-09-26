@@ -252,4 +252,74 @@ class PayslipTest extends TestCase
 
         $this->assertSame(3_500_000, $slip->fresh()->net_pay);
     }
+
+    /* ------------------------------------------------------------ catatan */
+
+    public function test_catatan_kosong_disimpan_sebagai_null(): void
+    {
+        $slip = $this->slip($this->employee(), attributes: ['note' => "   \n  "]);
+
+        $this->assertNull($slip->note);
+    }
+
+    public function test_catatan_ikut_tersimpan_dan_tercetak_di_slip(): void
+    {
+        $slip = $this->slip($this->employee(), attributes: [
+            'note' => 'Terima kasih atas kerja kerasnya bulan ini, terus semangat!',
+        ]);
+
+        $this->assertSame('Terima kasih atas kerja kerasnya bulan ini, terus semangat!', $slip->note);
+
+        $html = view('payslips.paper', ['paper' => PayslipPdf::paper($slip)])->render();
+
+        $this->assertStringContainsString('Catatan:', $html);
+        $this->assertStringContainsString('Terima kasih atas kerja kerasnya bulan ini, terus semangat!', $html);
+    }
+
+    /** Slip tanpa catatan tidak menampilkan kotak catatan sama sekali. */
+    public function test_slip_tanpa_catatan_tidak_menampilkan_kotak_catatan(): void
+    {
+        $slip = $this->slip($this->employee());
+
+        $html = view('payslips.paper', ['paper' => PayslipPdf::paper($slip)])->render();
+
+        // Label "Catatan:" hanya ditulis di dalam kotak; ketiadaannya
+        // membuktikan kotaknya tidak dirender sama sekali.
+        $this->assertStringNotContainsString('Catatan:', $html);
+    }
+
+    public function test_formulir_menyimpan_catatan_untuk_karyawan(): void
+    {
+        Filament::setCurrentPanel('admin');
+        Repeater::fake();
+
+        $employee = $this->employee();
+
+        Livewire::actingAs($this->superAdmin())
+            ->test(CreatePayslip::class)
+            ->fillForm([
+                'employee_id' => $employee->id,
+                'period' => '2026-09-01',
+                'note' => 'Pertahankan performa yang baik ini.',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Pertahankan performa yang baik ini.', Payslip::sole()->note);
+    }
+
+    public function test_catatan_bisa_dihapus_lewat_formulir_ubah(): void
+    {
+        Filament::setCurrentPanel('admin');
+
+        $slip = $this->slip($this->employee(), attributes: ['note' => 'Catatan lama']);
+
+        Livewire::actingAs($this->superAdmin())
+            ->test(EditPayslip::class, ['record' => $slip->getRouteKey()])
+            ->fillForm(['note' => ''])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull($slip->fresh()->note);
+    }
 }

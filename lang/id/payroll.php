@@ -30,6 +30,7 @@ return [
         'total_earnings' => 'Total pendapatan',
         'total_deductions' => 'Total potongan',
         'net_pay' => 'Gaji bersih',
+        'note' => 'Catatan untuk karyawan',
     ],
 
     'type' => [
@@ -44,6 +45,8 @@ return [
         'fixed' => 'Nominalnya dikunci ke nominal bawaan dan tidak bisa diubah di slip.',
         'lines' => 'Pilih dari daftar Komponen Gaji, atau ketik keterangan sendiri.',
         'snapshot' => 'Nama, NIK, dan jabatan disalin ke slip saat disimpan. Mengubah data karyawan belakangan tidak mengubah slip ini.',
+        'note' => 'Opsional. Pesan pribadi dari perusahaan — apresiasi, masukan, atau nasihat — ikut tercetak di slip. Kosongkan jika tidak perlu.',
+        'note_placeholder' => 'Mis. "Terima kasih atas kerja kerasnya bulan ini, terus semangat!"',
     ],
 
     'action' => [
@@ -83,6 +86,7 @@ return [
         'total_deductions' => 'Jumlah Potongan',
         'net_pay' => 'GAJI BERSIH (Take Home Pay)',
         'spelled' => 'Terbilang: :words',
+        'note_label' => 'Catatan:',
         'recipient' => 'Penerima,',
         'signer' => 'Pimpinan',
         'blank' => '(............................)',

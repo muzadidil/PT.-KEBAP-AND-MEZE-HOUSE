@@ -42,6 +42,7 @@ class PayslipPdf
                 ...$slip->earnings,
             ],
             'deductions' => $slip->deductions,
+            'note' => $slip->note,
             'total_earnings' => $slip->total_earnings,
             'total_deductions' => $slip->total_deductions,
             'net_pay' => $slip->net_pay,

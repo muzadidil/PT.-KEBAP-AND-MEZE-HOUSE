@@ -30,6 +30,7 @@ return [
         'total_earnings' => 'Total earnings',
         'total_deductions' => 'Total deductions',
         'net_pay' => 'Net pay',
+        'note' => 'Note to employee',
     ],
 
     'type' => [
@@ -44,6 +45,8 @@ return [
         'fixed' => 'The amount is locked to the default and cannot be changed on a payslip.',
         'lines' => 'Pick from the Pay Components list, or type your own description.',
         'snapshot' => 'Name, ID, and position are copied onto the payslip when it is saved. Changing the employee later does not change this payslip.',
+        'note' => 'Optional. A personal message from the company — appreciation, feedback, or advice — printed on the payslip. Leave empty if not needed.',
+        'note_placeholder' => 'E.g. "Thank you for your hard work this month, keep it up!"',
     ],
 
     'action' => [
@@ -83,6 +86,7 @@ return [
         'total_deductions' => 'Total Deductions',
         'net_pay' => 'NET PAY (Take Home Pay)',
         'spelled' => 'In words: :words',
+        'note_label' => 'Note:',
         'recipient' => 'Recipient,',
         'signer' => 'Management',
         'blank' => '(............................)',

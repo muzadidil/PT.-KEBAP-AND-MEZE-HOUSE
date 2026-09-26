@@ -17,6 +17,11 @@ use Illuminate\Support\Str;
  *   - nama, NIK, dan jabatan disalin dari data karyawan saat slip dibuat
  *   - item bertanda "fix" selalu bernominal bawaannya
  *   - total pendapatan, potongan, dan gaji bersih dihitung ulang tiap simpan
+ *   - catatan kosong (spasi saja) disimpan sebagai null, bukan string kosong
+ *
+ * `note` adalah pesan pribadi dari perusahaan ke karyawan penerima slip —
+ * apresiasi, masukan, atau nasihat — opsional dan ikut tercetak di kertas
+ * slip; lihat App\Support\Payroll\PayslipPdf.
  */
 class Payslip extends Model
 {
@@ -31,6 +36,7 @@ class Payslip extends Model
         'basic_salary',
         'earnings',
         'deductions',
+        'note',
         'user_id',
     ];
 
@@ -111,6 +117,7 @@ class Payslip extends Model
 
         $this->earnings = static::normalize(PayComponent::EARNING, $this->earnings);
         $this->deductions = static::normalize(PayComponent::DEDUCTION, $this->deductions);
+        $this->note = trim((string) $this->note) ?: null;
 
         $this->total_earnings = (int) $this->basic_salary + array_sum(array_column($this->earnings, 'amount'));
         $this->total_deductions = array_sum(array_column($this->deductions, 'amount'));

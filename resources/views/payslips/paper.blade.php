@@ -38,6 +38,9 @@
     .slip-thp { width: 100%; margin-top: 12px; border: 1.5px solid #111; background: #f2f2ee; font-weight: bold; font-size: 13.5px; }
     .slip-thp td { padding: 8px 12px; }
     .slip-spelled { font-style: italic; font-size: 11.5px; margin-top: 6px; color: #222; }
+    .slip-note { margin-top: 14px; padding: 8px 10px; border: 1px solid #111; border-left-width: 3px; background: #f9f9f6; font-size: 11.5px; }
+    .slip-note__label { font-weight: bold; letter-spacing: .4px; margin-bottom: 3px; }
+    .slip-note__text { white-space: pre-line; }
     .slip-sign { width: 100%; margin-top: 26px; font-size: 12px; }
     .slip-sign td { width: 50%; text-align: center; vertical-align: top; padding: 0; }
     .slip-sign__name { display: inline-block; min-width: 55%; margin-top: 56px; border-top: 1px solid #111; padding-top: 3px; font-weight: bold; }
@@ -106,6 +109,15 @@
     </table>
 
     <div class="slip-spelled">{{ $t('spelled', ['words' => $paper['spelled']]) }}</div>
+
+    {{-- Pesan pribadi dari perusahaan — apresiasi, masukan, atau nasihat.
+         Opsional: hanya dicetak kalau memang diisi. --}}
+    @if (filled($paper['note'] ?? null))
+        <div class="slip-note">
+            <div class="slip-note__label">{{ $t('note_label') }}</div>
+            <div class="slip-note__text">{{ $paper['note'] }}</div>
+        </div>
+    @endif
 
     <table class="slip-sign">
         <tr>

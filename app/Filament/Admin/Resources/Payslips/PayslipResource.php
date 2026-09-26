@@ -22,6 +22,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Group;
@@ -149,6 +150,18 @@ class PayslipResource extends Resource
                     static::lines('earnings', PayComponent::EARNING, 'add_earning'),
 
                     static::lines('deductions', PayComponent::DEDUCTION, 'add_deduction'),
+
+                    Section::make(__('payroll.field.note'))
+                        ->schema([
+                            Textarea::make('note')
+                                ->hiddenLabel()
+                                ->placeholder(__('payroll.help.note_placeholder'))
+                                ->helperText(__('payroll.help.note'))
+                                ->rows(3)
+                                ->maxLength(1000)
+                                ->live(onBlur: true)
+                                ->columnSpanFull(),
+                        ]),
                 ]),
 
                 View::make('filament.admin.payslips.preview')
@@ -251,6 +264,7 @@ class PayslipResource extends Resource
             'basic_salary' => (int) $get('basic_salary'),
             'earnings' => array_values($get('earnings') ?? []),
             'deductions' => array_values($get('deductions') ?? []),
+            'note' => $get('note'),
         ]);
 
         $slip->prepare();
