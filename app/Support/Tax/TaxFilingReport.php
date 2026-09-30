@@ -102,4 +102,28 @@ class TaxFilingReport
 
         return ['year' => $year, 'rows' => $rows, 'totals' => $totals];
     }
+
+    /**
+     * Rincian satu bulan: ringkasan pajaknya plus penjualan per hari.
+     *
+     * Ringkasannya baris bulan yang sama dengan tabel tahunan, jadi angka di
+     * layar bulanan tidak mungkin berbeda dari tabel tahunan.
+     *
+     * @return array{year: int, month: int, label: string, summary: array<string, mixed>, days: Collection<int, array<string, mixed>>, sales: int}
+     */
+    public static function month(int $year, int $month): array
+    {
+        $month = max(1, min(12, $month));
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $days = DailyLedger::daily($start, $start->copy()->endOfMonth()->startOfDay());
+
+        return [
+            'year' => $year,
+            'month' => $month,
+            'label' => $start->translatedFormat('F Y'),
+            'summary' => static::year($year)['rows']->firstWhere('month', $month),
+            'days' => $days,
+            'sales' => (int) $days->sum('total_sales'),
+        ];
+    }
 }

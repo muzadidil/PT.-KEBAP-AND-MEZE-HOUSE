@@ -9,6 +9,13 @@ return [
     'reported' => 'Sudah dilapor',
     'not_reported' => 'Belum dilapor',
 
+    'month' => [
+        'year_view' => 'Setahun',
+        'daily_title' => 'Penjualan per hari',
+        'inclusive' => 'harga sudah termasuk pajak',
+        'exclusive' => 'pajak ditambahkan di atas',
+    ],
+
     'card' => [
         'system' => 'Angka sistem: :amount',
         'paid' => 'Disetor: :amount',

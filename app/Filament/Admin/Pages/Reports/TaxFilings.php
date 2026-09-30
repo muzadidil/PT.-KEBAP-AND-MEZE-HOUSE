@@ -9,6 +9,7 @@ use App\Models\TaxFilingLog;
 use App\Support\Money;
 use App\Support\Tax\TaxFilingExport;
 use App\Support\Tax\TaxFilingReport;
+use App\Support\Tax\TaxMonthExport;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -50,6 +51,10 @@ class TaxFilings extends Page
     #[Url]
     public int $year = 0;
 
+    /** 0 = ringkasan setahun; 1–12 = rincian satu bulan. */
+    #[Url]
+    public int $month = 0;
+
     public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('nav.group.reports');
@@ -68,6 +73,20 @@ class TaxFilings extends Page
     public function mount(): void
     {
         $this->year = $this->year ?: Carbon::today()->year;
+        $this->month = $this->month >= 1 && $this->month <= 12 ? $this->month : 0;
+    }
+
+    public function openMonth(int $month): void
+    {
+        $this->month = max(0, min(12, $month));
+        unset($this->monthReport);
+    }
+
+    /** @return array<string, mixed> */
+    #[Computed]
+    public function monthReport(): array
+    {
+        return TaxFilingReport::month($this->year, max(1, $this->month));
     }
 
     /** @return array<string, mixed> */
@@ -99,7 +118,7 @@ class TaxFilings extends Page
 
     public function updatedYear(): void
     {
-        unset($this->report, $this->history);
+        unset($this->report, $this->history, $this->monthReport);
     }
 
     public function money(?int $amount): string
@@ -109,7 +128,7 @@ class TaxFilings extends Page
 
     public function pdfUrl(): string
     {
-        return route('filament.admin.pdf.tax-filing', ['year' => $this->year]);
+        return route('filament.admin.pdf.tax-filing', array_filter(['year' => $this->year, 'month' => $this->month]));
     }
 
     protected function getHeaderActions(): array
@@ -278,7 +297,7 @@ class TaxFilings extends Page
             ]);
         }
 
-        unset($this->report, $this->history);
+        unset($this->report, $this->history, $this->monthReport);
     }
 
     protected function plain(mixed $value): ?string
@@ -292,7 +311,9 @@ class TaxFilings extends Page
 
     public function exportExcel(): StreamedResponse
     {
-        $export = new TaxFilingExport($this->report);
+        $export = $this->month > 0
+            ? new TaxMonthExport($this->monthReport)
+            : new TaxFilingExport($this->report);
         $book = $export->build();
 
         return response()->streamDownload(function () use ($book) {

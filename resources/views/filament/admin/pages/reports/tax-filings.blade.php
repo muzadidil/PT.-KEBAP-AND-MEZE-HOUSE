@@ -23,9 +23,105 @@
         </div>
     </div>
 
+    {{-- Pilih tampilan: setahun, atau satu bulan --}}
+    <div class="filters__presets">
+        <button type="button" class="pos__chip" wire:click="openMonth(0)" @if ($this->month === 0) aria-current="true" @endif>
+            {{ __('tax_filing.month.year_view') }}
+        </button>
+
+        @foreach (range(1, 12) as $m)
+            <button type="button" class="pos__chip" wire:click="openMonth({{ $m }})" @if ($this->month === $m) aria-current="true" @endif>
+                {{ \Illuminate\Support\Carbon::create($this->year, $m, 1)->translatedFormat('M') }}
+            </button>
+        @endforeach
+    </div>
+
     {{-- Asal angkanya ditulis di layar: koreksi di sini tidak mengubah data asli. --}}
     <p class="report__note">{{ __('tax_filing.source') }}</p>
 
+    @if ($this->month > 0)
+        @php
+            $mr = $this->monthReport;
+            $sum = $mr['summary'];
+            $dayColumns = \App\Support\Tax\TaxMonthExport::dayColumns();
+        @endphp
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat__label">{{ __('tax_filing.col.revenue') }} — {{ $mr['label'] }}</div>
+                <div class="stat__value">{{ $this->money($sum['revenue']) }}</div>
+                <div class="stat__hint">{{ __('tax_filing.card.system', ['amount' => $this->money($sum['system_revenue'])]) }}</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat__label">{{ __('tax_filing.card.final') }} ({{ $sum['final_rate'] }}%)</div>
+                <div class="stat__value">{{ $this->money($sum['final_due']) }}</div>
+                <div class="stat__hint">{{ __('tax_filing.card.paid', ['amount' => $this->money($sum['paid_final'])]) }}</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat__label">{{ __('tax_filing.card.ppn') }} ({{ $sum['ppn_rate'] }}%)</div>
+                <div class="stat__value">{{ $this->money($sum['ppn_due']) }}</div>
+                <div class="stat__hint">
+                    {{ __('tax_filing.col.ppn_output') }} {{ $this->money($sum['ppn_output']) }}<br>
+                    {{ __('tax_filing.col.ppn_input') }} {{ $this->money($sum['ppn_input']) }}<br>
+                    {{ __('tax_filing.card.paid', ['amount' => $this->money($sum['paid_ppn'])]) }}
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat__label">{{ __('tax_filing.col.outstanding') }}</div>
+                <div class="stat__value {{ $sum['outstanding'] > 0 ? 'report__negative' : '' }}">{{ $this->money($sum['outstanding']) }}</div>
+                <div class="stat__hint">{{ $sum['is_reported'] ? __('tax_filing.reported') : __('tax_filing.not_reported') }}</div>
+            </div>
+        </div>
+
+        <div class="filters__presets print-hide">
+            <button type="button" class="pos__chip" wire:click="mountAction('editMonth', { month: {{ $mr['month'] }} })">
+                {{ __('tax_filing.edit.button') }} {{ $mr['label'] }}
+            </button>
+        </div>
+
+        @if ($sum['note'])
+            <p class="report__note">{{ __('field.note') }}: {{ $sum['note'] }}</p>
+        @endif
+
+        <div class="report__wrap">
+            <h3 class="pos__label">{{ __('tax_filing.month.daily_title') }}</h3>
+
+            <table class="report">
+                <thead>
+                    <tr>
+                        @foreach ($dayColumns as $column)
+                            <th class="{{ $loop->first ? '' : 'num' }}">{{ $column['label'] }}</th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($mr['days'] as $day)
+                        <tr>
+                            @foreach ($dayColumns as $column)
+                                <td class="{{ $loop->first ? '' : 'num' }}">
+                                    {{ $column['key'] === 'date' ? $day['date']->translatedFormat('D, j M Y') : $this->money((int) $day[$column['key']]) }}
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr>
+                        @foreach ($dayColumns as $column)
+                            <td class="{{ $loop->first ? '' : 'num' }}">
+                                {{ $loop->first ? __('report.grand_total') : $this->money((int) $mr['days']->sum($column['key'])) }}
+                            </td>
+                        @endforeach
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <p class="report__note">{{ __('tax_filing.adjusted_hint') }}</p>
+    @else
     <div class="stats">
         <div class="stat">
             <div class="stat__label">{{ __('tax_filing.col.revenue') }}</div>
@@ -67,9 +163,13 @@
                     <tr>
                         @foreach ($columns as $column)
                             <td class="{{ $column['money'] ? 'num' : '' }}">
-                                {{ $column['money']
-                                    ? $this->money((int) \App\Support\Tax\TaxFilingExport::cell($row, $column['key']))
-                                    : \App\Support\Tax\TaxFilingExport::cell($row, $column['key']) }}
+                                @if ($column['key'] === 'label')
+                                    <button type="button" wire:click="openMonth({{ $row['month'] }})" style="text-decoration: underline;">{{ $row['label'] }}</button>
+                                @else
+                                    {{ $column['money']
+                                        ? $this->money((int) \App\Support\Tax\TaxFilingExport::cell($row, $column['key']))
+                                        : \App\Support\Tax\TaxFilingExport::cell($row, $column['key']) }}
+                                @endif
 
                                 @if ($column['key'] === 'revenue' && $row['adjusted'])
                                     <span class="report__badge" title="{{ __('tax_filing.adjusted_hint') }}">{{ __('tax_filing.adjusted') }}</span>
@@ -103,6 +203,8 @@
     </div>
 
     <p class="report__note">{{ __('tax_filing.adjusted_hint') }}</p>
+
+    @endif
 
     {{-- Riwayat perubahan --}}
     <div class="report__wrap print-hide">

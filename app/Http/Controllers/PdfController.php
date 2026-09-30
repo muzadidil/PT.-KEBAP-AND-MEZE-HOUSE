@@ -14,6 +14,7 @@ use App\Support\Meetings\MeetingReport;
 use App\Support\Payroll\PayslipPdf;
 use App\Support\Reports\ListPdf;
 use App\Support\Tax\TaxFilingPdf;
+use App\Support\Tax\TaxMonthPdf;
 use App\Support\Tax\TaxFilingReport;
 use App\Filament\Admin\Pages\Reports\TaxFilings;
 use App\Support\Zeytin\DailyLedger;
@@ -92,6 +93,12 @@ class PdfController extends Controller
         $year = (int) $request->query('year');
         $year = $year >= 2000 && $year <= 2100 ? $year : Carbon::today()->year;
 
+        $month = (int) $request->query('month');
+
+        if ($month >= 1 && $month <= 12) {
+            return $this->inline(new TaxMonthPdf(TaxFilingReport::month($year, $month)));
+        }
+
         return $this->inline(new TaxFilingPdf(TaxFilingReport::year($year)));
     }
 
@@ -113,7 +120,7 @@ class PdfController extends Controller
         return $this->inline(new MeetingPdf(MeetingReport::make(), $scope));
     }
 
-    protected function inline(PeriodPdf|PayslipPdf|MeetingPdf|ListPdf|TaxFilingPdf $pdf): Response
+    protected function inline(PeriodPdf|PayslipPdf|MeetingPdf|ListPdf|TaxFilingPdf|TaxMonthPdf $pdf): Response
     {
         return response($pdf->render(), 200, [
             'Content-Type' => 'application/pdf',

@@ -9,6 +9,13 @@ return [
     'reported' => 'Reported',
     'not_reported' => 'Not yet reported',
 
+    'month' => [
+        'year_view' => 'Whole year',
+        'daily_title' => 'Daily sales',
+        'inclusive' => 'prices include tax',
+        'exclusive' => 'tax added on top',
+    ],
+
     'card' => [
         'system' => 'System figure: :amount',
         'paid' => 'Paid: :amount',
