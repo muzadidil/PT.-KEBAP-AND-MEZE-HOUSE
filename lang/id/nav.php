@@ -29,6 +29,7 @@ return [
     'cash_expenses' => 'Pengeluaran Tunai',
     'online_transfers' => 'Transfer Online',
     'salary' => 'Gaji',
+    'tax_filing' => 'Laporan Pajak',
     'tax' => 'Pajak',
     'owner_expenses' => 'Pengeluaran Pemilik',
     'balance_sheet' => 'Neraca',

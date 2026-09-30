@@ -29,6 +29,7 @@ return [
     'cash_expenses' => 'Cash Expenses',
     'online_transfers' => 'Online Transfers',
     'salary' => 'Salary',
+    'tax_filing' => 'Tax Report',
     'tax' => 'Tax',
     'owner_expenses' => 'Owner Expenses',
     'balance_sheet' => 'Balance Sheet',

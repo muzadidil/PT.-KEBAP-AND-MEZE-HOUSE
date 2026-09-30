@@ -34,6 +34,7 @@ class PanelAccessTest extends TestCase
             'online transfers' => ['filament.admin.pages.online-transfers'],
             'salary' => ['filament.admin.pages.salary'],
             'tax' => ['filament.admin.pages.tax'],
+            'tax filings' => ['filament.admin.pages.tax-filings'],
             'owner expenses' => ['filament.admin.pages.owner-expenses'],
             'balance sheet' => ['filament.admin.pages.balance-sheet'],
             'expenses' => ['filament.admin.resources.expenses.index'],

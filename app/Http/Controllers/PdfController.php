@@ -13,6 +13,9 @@ use App\Support\Meetings\MeetingPdf;
 use App\Support\Meetings\MeetingReport;
 use App\Support\Payroll\PayslipPdf;
 use App\Support\Reports\ListPdf;
+use App\Support\Tax\TaxFilingPdf;
+use App\Support\Tax\TaxFilingReport;
+use App\Filament\Admin\Pages\Reports\TaxFilings;
 use App\Support\Zeytin\DailyLedger;
 use App\Support\Zeytin\PeriodPdf;
 use Illuminate\Http\Request;
@@ -81,6 +84,17 @@ class PdfController extends Controller
         ));
     }
 
+    /** Laporan Pajak satu tahun, dengan koreksi pelaporan yang sudah disimpan. */
+    public function taxFiling(Request $request): Response
+    {
+        abort_unless(TaxFilings::canAccess(), 403);
+
+        $year = (int) $request->query('year');
+        $year = $year >= 2000 && $year <= 2100 ? $year : Carbon::today()->year;
+
+        return $this->inline(new TaxFilingPdf(TaxFilingReport::year($year)));
+    }
+
     public function payslip(Payslip $payslip): Response
     {
         abort_unless(PayslipResource::canAccess(), 403);
@@ -99,7 +113,7 @@ class PdfController extends Controller
         return $this->inline(new MeetingPdf(MeetingReport::make(), $scope));
     }
 
-    protected function inline(PeriodPdf|PayslipPdf|MeetingPdf|ListPdf $pdf): Response
+    protected function inline(PeriodPdf|PayslipPdf|MeetingPdf|ListPdf|TaxFilingPdf $pdf): Response
     {
         return response($pdf->render(), 200, [
             'Content-Type' => 'application/pdf',
