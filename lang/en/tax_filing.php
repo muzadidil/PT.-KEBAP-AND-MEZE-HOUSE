@@ -25,6 +25,8 @@ return [
 
     'col' => [
         'system_revenue' => 'System revenue',
+        'investor_share' => 'Local investor share',
+        'tax_base' => 'Tax base',
         'revenue' => 'Revenue reported',
         'final_due' => 'PPh Final due',
         'paid_final' => 'PPh Final paid',
@@ -37,6 +39,7 @@ return [
     ],
 
     'field' => [
+        'investor_share' => 'Local investor share (%)',
         'revenue_override' => 'Revenue for reporting',
         'final_rate' => 'PPh Final rate',
         'ppn_rate' => 'VAT / restaurant tax rate',
@@ -52,6 +55,7 @@ return [
         'action' => 'Default rates',
         'heading' => 'Default tax rates',
         'description' => 'Used for every month unless a month sets its own rate.',
+        'investor_hint' => 'Share of revenue for the local investor who owns the location. Shown as its own line; tax is calculated on the rest. Leave 0 if none.',
         'ppn_hint' => 'VAT is 11%. Restaurant tax (PBJT) is usually 10% — set what applies to you.',
         'inclusive_hint' => 'On: tax is separated out of the sales price. Off: tax is added on top.',
     ],

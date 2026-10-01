@@ -152,7 +152,7 @@ class TaxFilingTest extends TestCase
 
         // Baris terakhir = total; kolom C = omzet dilaporkan.
         $this->assertSame(10_000_000, (int) $sheet->getCell('C17')->getValue());
-        $this->assertSame($report['totals']['final_due'], (int) $sheet->getCell('D17')->getValue());
+        $this->assertSame($report['totals']['final_due'], (int) $sheet->getCell('F17')->getValue());
     }
 
     public function test_laporan_bulanan_sama_dengan_baris_bulan_di_tabel_tahunan(): void
@@ -199,5 +199,33 @@ class TaxFilingTest extends TestCase
 
         $values = collect($sheet->toArray(null, true, false))->flatten()->filter()->all();
         $this->assertContains(10_000_000, array_map(fn ($v) => is_numeric($v) ? (int) $v : $v, $values));
+    }
+
+    public function test_bagi_hasil_investor_tampil_terpisah_dan_persennya_bisa_diatur(): void
+    {
+        $this->sales('2026-08-05', 10_000_000);
+        \App\Models\Setting::put('tax.investor_share', 20);
+
+        $august = TaxFilingReport::year(2026)['rows']->firstWhere('month', 8);
+
+        $this->assertSame(10_000_000, $august['revenue']);
+        $this->assertSame(2_000_000, $august['investor_share']);
+        $this->assertSame(8_000_000, $august['tax_base']);
+        $this->assertSame(40_000, $august['final_due']);
+
+        // Satu bulan boleh memakai persen sendiri.
+        Livewire::actingAs($this->admin())
+            ->test(TaxFilings::class)
+            ->set('year', 2026)
+            ->call('saveMonth', 8, [
+                'revenue_override' => null, 'investor_share' => 15, 'final_rate' => null, 'ppn_rate' => null,
+                'ppn_inclusive' => 'default', 'ppn_input' => 0, 'paid_final' => 0,
+                'paid_ppn' => 0, 'is_reported' => false, 'note' => null,
+            ]);
+
+        $august = TaxFilingReport::year(2026)['rows']->firstWhere('month', 8);
+        $this->assertSame(1_500_000, $august['investor_share']);
+        $this->assertSame(8_500_000, $august['tax_base']);
+        $this->assertSame(1, TaxFilingLog::where('field', 'investor_share')->count());
     }
 }

@@ -25,6 +25,8 @@ return [
 
     'col' => [
         'system_revenue' => 'Omzet sistem',
+        'investor_share' => 'Bagi hasil investor lokal',
+        'tax_base' => 'Dasar pajak',
         'revenue' => 'Omzet dilaporkan',
         'final_due' => 'PPh Final terutang',
         'paid_final' => 'PPh Final disetor',
@@ -37,6 +39,7 @@ return [
     ],
 
     'field' => [
+        'investor_share' => 'Bagi hasil investor lokal (%)',
         'revenue_override' => 'Omzet untuk pelaporan',
         'final_rate' => 'Tarif PPh Final',
         'ppn_rate' => 'Tarif PPN / pajak restoran',
@@ -52,6 +55,7 @@ return [
         'action' => 'Tarif bawaan',
         'heading' => 'Tarif pajak bawaan',
         'description' => 'Dipakai untuk semua bulan, kecuali bulan yang mengisi tarifnya sendiri.',
+        'investor_hint' => 'Bagian omzet untuk investor lokal pemilik lokasi. Tampil sebagai baris sendiri; pajak dihitung dari sisanya. Isi 0 kalau tidak ada.',
         'ppn_hint' => 'PPN 11%. Pajak restoran (PBJT) biasanya 10% — isi sesuai yang berlaku untuk Anda.',
         'inclusive_hint' => 'Aktif: pajak dipisah dari harga jual. Mati: pajak ditambahkan di atas harga.',
     ],

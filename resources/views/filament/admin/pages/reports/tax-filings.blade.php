@@ -50,7 +50,11 @@
             <div class="stat">
                 <div class="stat__label">{{ __('tax_filing.col.revenue') }} — {{ $mr['label'] }}</div>
                 <div class="stat__value">{{ $this->money($sum['revenue']) }}</div>
-                <div class="stat__hint">{{ __('tax_filing.card.system', ['amount' => $this->money($sum['system_revenue'])]) }}</div>
+                <div class="stat__hint">
+                    {{ __('tax_filing.card.system', ['amount' => $this->money($sum['system_revenue'])]) }}<br>
+                    {{ __('tax_filing.col.investor_share') }} ({{ $sum['investor_share_pct'] }}%) {{ $this->money($sum['investor_share']) }}<br>
+                    {{ __('tax_filing.col.tax_base') }} {{ $this->money($sum['tax_base']) }}
+                </div>
             </div>
 
             <div class="stat">

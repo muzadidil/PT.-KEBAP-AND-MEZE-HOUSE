@@ -17,6 +17,7 @@ class TaxFiling extends Model
     {
         return [
             'revenue_override' => 'integer',
+            'investor_share' => 'float',
             'final_rate' => 'float',
             'ppn_rate' => 'float',
             'ppn_inclusive' => 'boolean',

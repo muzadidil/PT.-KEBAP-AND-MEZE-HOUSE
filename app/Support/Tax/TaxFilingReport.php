@@ -21,13 +21,14 @@ class TaxFilingReport
 
     public const DEFAULT_PPN_RATE = 11.0;
 
-    /** @return array{final_rate: float, ppn_rate: float, ppn_inclusive: bool} */
+    /** @return array{final_rate: float, ppn_rate: float, ppn_inclusive: bool, investor_share: float} */
     public static function defaults(): array
     {
         return [
             'final_rate' => (float) Setting::get('tax.final_rate', static::DEFAULT_FINAL_RATE),
             'ppn_rate' => (float) Setting::get('tax.ppn_rate', static::DEFAULT_PPN_RATE),
             'ppn_inclusive' => (bool) Setting::get('tax.ppn_inclusive', false),
+            'investor_share' => (float) Setting::get('tax.investor_share', 0),
         ];
     }
 
@@ -65,8 +66,14 @@ class TaxFilingReport
             $ppnRate = $filing?->ppn_rate ?? $defaults['ppn_rate'];
             $inclusive = $filing?->ppn_inclusive ?? $defaults['ppn_inclusive'];
 
-            $finalDue = (int) round($revenue * $finalRate / 100);
-            $ppnOut = static::outputTax($revenue, $ppnRate, $inclusive);
+            // Bagi hasil investor lokal dikeluarkan dulu, lalu pajak dihitung
+            // dari sisanya (dasar pajak). Ditampilkan terpisah, tidak disembunyikan.
+            $sharePct = $filing?->investor_share ?? $defaults['investor_share'];
+            $share = (int) round($revenue * $sharePct / 100);
+            $base = $revenue - $share;
+
+            $finalDue = (int) round($base * $finalRate / 100);
+            $ppnOut = static::outputTax($base, $ppnRate, $inclusive);
             $ppnInput = (int) ($filing?->ppn_input ?? 0);
             $ppnDue = $ppnOut - $ppnInput;
 
@@ -79,6 +86,9 @@ class TaxFilingReport
                 'system_revenue' => $system,
                 'revenue' => $revenue,
                 'adjusted' => $filing?->revenue_override !== null,
+                'investor_share_pct' => $sharePct,
+                'investor_share' => $share,
+                'tax_base' => $base,
                 'final_rate' => $finalRate,
                 'final_due' => $finalDue,
                 'paid_final' => $paidFinal,
@@ -96,7 +106,7 @@ class TaxFilingReport
 
         $totals = [];
 
-        foreach (['system_revenue', 'revenue', 'final_due', 'paid_final', 'ppn_output', 'ppn_input', 'ppn_due', 'paid_ppn', 'outstanding'] as $field) {
+        foreach (['system_revenue', 'revenue', 'investor_share', 'tax_base', 'final_due', 'paid_final', 'ppn_output', 'ppn_input', 'ppn_due', 'paid_ppn', 'outstanding'] as $field) {
             $totals[$field] = (int) $rows->sum($field);
         }
 

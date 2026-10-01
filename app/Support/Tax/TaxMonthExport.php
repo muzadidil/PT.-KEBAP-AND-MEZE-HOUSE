@@ -33,6 +33,9 @@ class TaxMonthExport
         return [
             [__('tax_filing.col.system_revenue'), $summary['system_revenue'], true],
             [__('tax_filing.col.revenue'), $summary['revenue'], true],
+            [__('tax_filing.field.investor_share'), $rate($summary['investor_share_pct']), false],
+            [__('tax_filing.col.investor_share'), $summary['investor_share'], true],
+            [__('tax_filing.col.tax_base'), $summary['tax_base'], true],
             [__('tax_filing.field.final_rate'), $rate($summary['final_rate']), false],
             [__('tax_filing.col.final_due'), $summary['final_due'], true],
             [__('tax_filing.col.paid_final'), $summary['paid_final'], true],

@@ -150,6 +150,10 @@ class TaxFilings extends Page
                 TextInput::make('final_rate')
                     ->label(__('tax_filing.field.final_rate'))
                     ->numeric()->minValue(0)->maxValue(100)->suffix('%')->required(),
+                TextInput::make('investor_share')
+                    ->label(__('tax_filing.field.investor_share'))
+                    ->helperText(__('tax_filing.rates.investor_hint'))
+                    ->numeric()->minValue(0)->maxValue(100)->suffix('%')->required(),
                 TextInput::make('ppn_rate')
                     ->label(__('tax_filing.field.ppn_rate'))
                     ->helperText(__('tax_filing.rates.ppn_hint'))
@@ -162,6 +166,7 @@ class TaxFilings extends Page
                 Setting::put('tax.final_rate', (float) $data['final_rate']);
                 Setting::put('tax.ppn_rate', (float) $data['ppn_rate']);
                 Setting::put('tax.ppn_inclusive', (bool) $data['ppn_inclusive']);
+                Setting::put('tax.investor_share', (float) $data['investor_share']);
 
                 unset($this->report);
 
@@ -185,6 +190,7 @@ class TaxFilings extends Page
 
                 return [
                     'revenue_override' => $filing?->revenue_override,
+                    'investor_share' => $filing?->investor_share,
                     'final_rate' => $filing?->final_rate,
                     'ppn_rate' => $filing?->ppn_rate,
                     'ppn_inclusive' => match ($filing?->ppn_inclusive) {
@@ -204,6 +210,10 @@ class TaxFilings extends Page
                     ->label(__('tax_filing.field.revenue_override'))
                     ->helperText(__('tax_filing.edit.revenue_hint'))
                     ->numeric()->integer()->minValue(0)->prefix('Rp'),
+                TextInput::make('investor_share')
+                    ->label(__('tax_filing.field.investor_share'))
+                    ->helperText(__('tax_filing.edit.rate_hint'))
+                    ->numeric()->minValue(0)->maxValue(100)->suffix('%'),
                 TextInput::make('final_rate')
                     ->label(__('tax_filing.field.final_rate'))
                     ->helperText(__('tax_filing.edit.rate_hint'))
@@ -250,6 +260,7 @@ class TaxFilings extends Page
 
         $new = [
             'revenue_override' => filled($data['revenue_override'] ?? null) ? (int) $data['revenue_override'] : null,
+            'investor_share' => filled($data['investor_share'] ?? null) ? (float) $data['investor_share'] : null,
             'final_rate' => filled($data['final_rate'] ?? null) ? (float) $data['final_rate'] : null,
             'ppn_rate' => filled($data['ppn_rate'] ?? null) ? (float) $data['ppn_rate'] : null,
             'ppn_inclusive' => match ($data['ppn_inclusive'] ?? 'default') {

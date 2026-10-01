@@ -30,6 +30,8 @@ class TaxFilingExport
             ['key' => 'label', 'label' => __('report.month'), 'money' => false],
             $money('system_revenue'),
             $money('revenue'),
+            $money('investor_share'),
+            $money('tax_base'),
             $money('final_due'),
             $money('paid_final'),
             $money('ppn_output'),
