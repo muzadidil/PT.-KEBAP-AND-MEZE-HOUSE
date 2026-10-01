@@ -75,6 +75,19 @@ return [
         'failed' => 'Impor gagal: :message',
     ],
 
+    'pos' => [
+        'action' => 'Impor penjualan kasir',
+        'heading' => 'Impor penjualan dari laporan kasir',
+        'description' => 'Pakai berkas "Report Item Details" (CSV atau Excel). Net Sales dijumlahkan per tanggal dan cara bayar (Cash, BNI, GrabFood, GoFood, GoPay). Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
+        'file' => 'Berkas CSV atau Excel',
+        'unreadable' => 'Berkas tidak bisa dibaca. Pakai berkas CSV atau Excel hasil ekspor dari kasir.',
+        'missing_column' => 'Kolom ":column" tidak ada. Pakai berkas "Report Item Details" apa adanya.',
+        'bad_date' => 'Baris :row: tanggal ":value" tidak valid. Pakai hari-bulan-tahun, mis. 30-09-2026.',
+        'bad_amount' => 'Baris :row: Net Sales ":value" bukan angka.',
+        'unknown_method' => 'Cara bayar ":method" (baris :rows) tidak dikenal. Yang dikenal: :valid. Ubah namanya di berkas, atau minta ditambahkan.',
+        'skipped_note' => 'Dilewati karena sudah terisi: :dates',
+    ],
+
     'count' => [
         'created' => ':count baru',
         'updated' => ':count diperbarui',

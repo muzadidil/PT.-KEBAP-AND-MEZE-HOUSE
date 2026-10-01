@@ -75,6 +75,19 @@ return [
         'failed' => 'Import failed: :message',
     ],
 
+    'pos' => [
+        'action' => 'Import POS sales',
+        'heading' => 'Import sales from the POS report',
+        'description' => 'Use the "Report Item Details" file (CSV or Excel). Net Sales is added up per date and payment method (Cash, BNI, GrabFood, GoFood, GoPay). Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
+        'file' => 'CSV or Excel file',
+        'unreadable' => 'The file could not be read. Use the CSV or Excel file exported from the POS.',
+        'missing_column' => 'Column ":column" is missing. Use the "Report Item Details" file as exported.',
+        'bad_date' => 'Row :row: date ":value" is not valid. Use day-month-year, e.g. 30-09-2026.',
+        'bad_amount' => 'Row :row: Net Sales ":value" is not a number.',
+        'unknown_method' => 'Payment method ":method" (rows :rows) is not recognised. Known: :valid. Rename it in the file, or ask for it to be added.',
+        'skipped_note' => 'Skipped, already filled: :dates',
+    ],
+
     'count' => [
         'created' => ':count new',
         'updated' => ':count updated',
