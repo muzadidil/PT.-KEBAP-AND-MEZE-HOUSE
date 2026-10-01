@@ -251,4 +251,29 @@ class TaxFilingTest extends TestCase
             ->instance()->pdfUrl();
         $this->assertStringContainsString('share=30', $url);
     }
+
+    public function test_halaman_punya_formulir_pdf_dengan_kotak_persen(): void
+    {
+        $this->actingAs($this->admin())
+            ->get(route('filament.admin.pages.tax-filings', ['year' => 2026, 'month' => 8]))
+            ->assertOk()
+            ->assertSee('name="share"', false)
+            ->assertSee('name="month" value="8"', false);
+    }
+
+    public function test_isi_pdf_berbeda_menurut_persen(): void
+    {
+        $this->sales('2026-08-05', 10_000_000);
+
+        $html = fn (?float $share) => view('pdf.tax-month', [
+            'report' => $r = TaxFilingReport::month(2026, 8, $share),
+            'lines' => \App\Support\Tax\TaxMonthExport::summaryLines($r['summary']),
+            'columns' => \App\Support\Tax\TaxMonthExport::dayColumns(),
+            'letterhead' => config('zeytin.letterhead'),
+        ])->render();
+
+        $this->assertStringContainsString('6.000.000', $html(40)); // dasar pajak 60%
+        $this->assertStringContainsString('40%', $html(40));
+        $this->assertStringNotContainsString('6.000.000', $html(0));
+    }
 }

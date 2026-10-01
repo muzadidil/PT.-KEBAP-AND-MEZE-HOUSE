@@ -111,7 +111,7 @@ class TaxFilingReport
             $totals[$field] = (int) $rows->sum($field);
         }
 
-        return ['year' => $year, 'rows' => $rows, 'totals' => $totals];
+        return ['year' => $year, 'rows' => $rows, 'totals' => $totals, 'share_override' => $shareOverride];
     }
 
     /**
@@ -135,6 +135,7 @@ class TaxFilingReport
             'summary' => static::year($year, $shareOverride)['rows']->firstWhere('month', $month),
             'days' => $days,
             'sales' => (int) $days->sum('total_sales'),
+            'share_override' => $shareOverride,
         ];
     }
 }

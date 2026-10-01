@@ -51,6 +51,9 @@
                 <td>
                     <div class="head__title">{{ __('nav.tax_filing') }}</div>
                     <div class="head__period">{{ $report['label'] }}</div>
+                    @if (($report['share_override'] ?? null) !== null)
+                        <div class="head__currency">{{ __('tax_filing.col.investor_share') }}: {{ $report['share_override'] }}%</div>
+                    @endif
                     <div class="head__currency">{{ __('zeytin.pdf.currency') }}</div>
                 </td>
             </tr>

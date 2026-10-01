@@ -18,11 +18,20 @@
 
         <div class="filters__presets">
             <button type="button" class="pos__chip" wire:click="exportExcel">{{ __('report.export_excel') }}</button>
-            <label class="filters__field">
-                <span class="pos__label">{{ __('tax_filing.pdf_share') }}</span>
-                <input type="number" min="0" max="100" step="0.01" wire:model.live.debounce.500ms="pdfShare" style="width: 6rem;">
-            </label>
-            <a class="pos__chip" href="{{ $this->pdfUrl() }}" target="_blank" rel="noopener">{{ __('report.pdf') }}</a>
+            {{-- Formulir biasa, bukan tautan Livewire: angka yang dikirim selalu
+                 angka yang sedang terketik di kotaknya, tanpa menunggu layar
+                 diperbarui. --}}
+            <form method="get" action="{{ route('filament.admin.pdf.tax-filing') }}" target="_blank" style="display: inline-flex; gap: .5rem; align-items: end;">
+                <input type="hidden" name="year" value="{{ $this->year }}">
+                @if ($this->month > 0)
+                    <input type="hidden" name="month" value="{{ $this->month }}">
+                @endif
+                <label class="filters__field">
+                    <span class="pos__label">{{ __('tax_filing.pdf_share') }}</span>
+                    <input type="number" name="share" min="0" max="100" step="0.01" wire:model="pdfShare" style="width: 6rem;">
+                </label>
+                <button type="submit" class="pos__chip">{{ __('report.pdf') }}</button>
+            </form>
             <button type="button" class="pos__chip" onclick="window.print()">{{ __('report.print') }}</button>
         </div>
     </div>
