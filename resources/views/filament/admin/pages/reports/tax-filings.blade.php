@@ -18,6 +18,10 @@
 
         <div class="filters__presets">
             <button type="button" class="pos__chip" wire:click="exportExcel">{{ __('report.export_excel') }}</button>
+            <label class="filters__field">
+                <span class="pos__label">{{ __('tax_filing.pdf_share') }}</span>
+                <input type="number" min="0" max="100" step="0.01" wire:model.live.debounce.500ms="pdfShare" style="width: 6rem;">
+            </label>
             <a class="pos__chip" href="{{ $this->pdfUrl() }}" target="_blank" rel="noopener">{{ __('report.pdf') }}</a>
             <button type="button" class="pos__chip" onclick="window.print()">{{ __('report.print') }}</button>
         </div>

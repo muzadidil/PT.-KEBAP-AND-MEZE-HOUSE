@@ -95,11 +95,16 @@ class PdfController extends Controller
 
         $month = (int) $request->query('month');
 
+        // Potongan bagi hasil yang dipilih di samping tombol PDF (0–100%).
+        $share = is_numeric($request->query('share'))
+            ? max(0.0, min(100.0, (float) $request->query('share')))
+            : null;
+
         if ($month >= 1 && $month <= 12) {
-            return $this->inline(new TaxMonthPdf(TaxFilingReport::month($year, $month)));
+            return $this->inline(new TaxMonthPdf(TaxFilingReport::month($year, $month, $share)));
         }
 
-        return $this->inline(new TaxFilingPdf(TaxFilingReport::year($year)));
+        return $this->inline(new TaxFilingPdf(TaxFilingReport::year($year, $share)));
     }
 
     public function payslip(Payslip $payslip): Response

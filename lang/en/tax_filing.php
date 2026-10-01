@@ -3,6 +3,7 @@
 return [
 
     'source' => 'Source: revenue from Daily Income in Monthly Bookkeeping. Edits here apply to this report only — the original data, the Monthly Ledger, and the Balance Sheet are never changed.',
+    'pdf_share' => 'PDF deduction (%)',
     'saved' => 'Saved',
     'adjusted' => 'Edited',
     'adjusted_hint' => 'Rates are configurable. Restaurants may owe regional restaurant tax (PBJT) instead of VAT — check with your tax consultant. "Edited" marks a month whose revenue was overridden for reporting.',

@@ -47,7 +47,7 @@ class TaxFilingReport
      *
      * @return array{year: int, rows: Collection<int, array<string, mixed>>, totals: array<string, int>}
      */
-    public static function year(int $year): array
+    public static function year(int $year, ?float $shareOverride = null): array
     {
         $start = Carbon::create($year, 1, 1)->startOfDay();
         $sales = DailyLedger::groupByMonth(
@@ -57,7 +57,7 @@ class TaxFilingReport
         $filings = TaxFiling::query()->where('year', $year)->get()->keyBy('month');
         $defaults = static::defaults();
 
-        $rows = collect(range(1, 12))->map(function (int $month) use ($year, $sales, $filings, $defaults) {
+        $rows = collect(range(1, 12))->map(function (int $month) use ($year, $sales, $filings, $defaults, $shareOverride) {
             $filing = $filings->get($month);
             $system = (int) ($sales->get($month)['total_sales'] ?? 0);
             $revenue = $filing?->revenue_override ?? $system;
@@ -68,7 +68,8 @@ class TaxFilingReport
 
             // Bagi hasil investor lokal dikeluarkan dulu, lalu pajak dihitung
             // dari sisanya (dasar pajak). Ditampilkan terpisah, tidak disembunyikan.
-            $sharePct = $filing?->investor_share ?? $defaults['investor_share'];
+            // Persen yang dipilih saat mengunduh PDF menang atas semua bulan.
+            $sharePct = $shareOverride ?? $filing?->investor_share ?? $defaults['investor_share'];
             $share = (int) round($revenue * $sharePct / 100);
             $base = $revenue - $share;
 
@@ -121,7 +122,7 @@ class TaxFilingReport
      *
      * @return array{year: int, month: int, label: string, summary: array<string, mixed>, days: Collection<int, array<string, mixed>>, sales: int}
      */
-    public static function month(int $year, int $month): array
+    public static function month(int $year, int $month, ?float $shareOverride = null): array
     {
         $month = max(1, min(12, $month));
         $start = Carbon::create($year, $month, 1)->startOfDay();
@@ -131,7 +132,7 @@ class TaxFilingReport
             'year' => $year,
             'month' => $month,
             'label' => $start->translatedFormat('F Y'),
-            'summary' => static::year($year)['rows']->firstWhere('month', $month),
+            'summary' => static::year($year, $shareOverride)['rows']->firstWhere('month', $month),
             'days' => $days,
             'sales' => (int) $days->sum('total_sales'),
         ];

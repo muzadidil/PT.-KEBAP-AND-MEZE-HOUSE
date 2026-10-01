@@ -3,6 +3,7 @@
 return [
 
     'source' => 'Sumber: omzet dari Pemasukan Harian di Pembukuan Bulanan. Perubahan di sini hanya berlaku untuk laporan ini — data asli, Buku Besar Bulanan, dan Neraca tidak pernah berubah.',
+    'pdf_share' => 'Potongan PDF (%)',
     'saved' => 'Tersimpan',
     'adjusted' => 'Diedit',
     'adjusted_hint' => 'Tarif bisa diatur. Restoran bisa jadi terutang pajak restoran daerah (PBJT), bukan PPN — pastikan ke konsultan pajak. "Diedit" menandai bulan yang omzetnya ditimpa untuk pelaporan.',

@@ -228,4 +228,27 @@ class TaxFilingTest extends TestCase
         $this->assertSame(8_500_000, $august['tax_base']);
         $this->assertSame(1, TaxFilingLog::where('field', 'investor_share')->count());
     }
+
+    public function test_persen_potongan_pilihan_di_pdf_menimpa_semua_bulan(): void
+    {
+        $this->sales('2026-08-05', 10_000_000);
+
+        $august = TaxFilingReport::year(2026, 25)['rows']->firstWhere('month', 8);
+        $this->assertSame(2_500_000, $august['investor_share']);
+        $this->assertSame(7_500_000, $august['tax_base']);
+        $this->assertSame(37_500, $august['final_due']);
+
+        $this->assertSame(7_500_000, TaxFilingReport::month(2026, 8, 25)['summary']['tax_base']);
+
+        $pdf = $this->actingAs($this->admin())
+            ->get(route('filament.admin.pdf.tax-filing', ['year' => 2026, 'month' => 8, 'share' => 25]))
+            ->assertOk();
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+
+        $url = Livewire::actingAs($this->admin())
+            ->test(TaxFilings::class, ['year' => 2026, 'month' => 8])
+            ->set('pdfShare', '30')
+            ->instance()->pdfUrl();
+        $this->assertStringContainsString('share=30', $url);
+    }
 }

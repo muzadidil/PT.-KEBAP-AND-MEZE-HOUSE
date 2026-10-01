@@ -51,6 +51,9 @@ class TaxFilings extends Page
     #[Url]
     public int $year = 0;
 
+    /** Potongan bagi hasil (%) untuk PDF yang diunduh; diisi dari persen bawaan. */
+    public ?string $pdfShare = null;
+
     /** 0 = ringkasan setahun; 1–12 = rincian satu bulan. */
     #[Url]
     public int $month = 0;
@@ -74,6 +77,7 @@ class TaxFilings extends Page
     {
         $this->year = $this->year ?: Carbon::today()->year;
         $this->month = $this->month >= 1 && $this->month <= 12 ? $this->month : 0;
+        $this->pdfShare ??= (string) TaxFilingReport::defaults()['investor_share'];
     }
 
     public function openMonth(int $month): void
@@ -128,7 +132,12 @@ class TaxFilings extends Page
 
     public function pdfUrl(): string
     {
-        return route('filament.admin.pdf.tax-filing', array_filter(['year' => $this->year, 'month' => $this->month]));
+        $share = is_numeric($this->pdfShare) ? max(0, min(100, (float) $this->pdfShare)) : null;
+
+        return route('filament.admin.pdf.tax-filing', array_filter(
+            ['year' => $this->year, 'month' => $this->month, 'share' => $share],
+            fn ($value) => $value !== null && $value !== 0,
+        ));
     }
 
     protected function getHeaderActions(): array
