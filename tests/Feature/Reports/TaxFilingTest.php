@@ -269,10 +269,10 @@ class TaxFilingTest extends TestCase
             $r = TaxFilingReport::month(2026, 8, $share);
 
             return view('pdf.tax-month', [
-                'report' => $r,
+                'report' => ['days' => \App\Support\Tax\TaxMonthPdf::scaledDays($r)] + $r,
                 'lines' => \App\Support\Tax\TaxMonthExport::pdfSummaryLines($r['summary']),
                 'columns' => \App\Support\Tax\TaxMonthExport::dayColumns(),
-                'showDays' => $r['summary']['tax_base'] === $r['sales'],
+                'showDays' => true,
                 'letterhead' => config('zeytin.letterhead'),
             ])->render();
         };
@@ -283,10 +283,14 @@ class TaxFilingTest extends TestCase
         $this->assertStringNotContainsString('10.000.000', $cut);
         $this->assertStringNotContainsString(__('tax_filing.col.investor_share'), $cut);
         $this->assertStringNotContainsString(__('tax_filing.col.system_revenue'), $cut);
-        $this->assertStringNotContainsString(__('tax_filing.month.daily_title'), $cut);
+        // Rincian harian ikut terpotong: totalnya sama dengan omzet setelah potongan.
+        $this->assertStringContainsString(__('tax_filing.month.daily_title'), $cut);
+        $days = \App\Support\Tax\TaxMonthPdf::scaledDays(TaxFilingReport::month(2026, 8, 40));
+        $this->assertSame(6_000_000, (int) $days->sum('total_sales'));
+        $this->assertSame(6_000_000, (int) $days->sum('cash'));
 
-        // Tanpa potongan, rincian harian tetap dicetak.
-        $this->assertStringContainsString(__('tax_filing.month.daily_title'), $month(0));
+        // Tanpa potongan, rincian harian tetap angka asli.
+        $this->assertStringContainsString('10.000.000', $month(0));
 
         $year = view('pdf.tax-filing', [
             'report' => TaxFilingReport::year(2026, 40),

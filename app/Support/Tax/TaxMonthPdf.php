@@ -15,11 +15,9 @@ class TaxMonthPdf
     public function render(): string
     {
         $pdf = Pdf::loadView('pdf.tax-month', [
-            'report' => $this->report,
+            'report' => ['days' => static::scaledDays($this->report)] + $this->report,
             'lines' => TaxMonthExport::pdfSummaryLines($this->report['summary']),
-            // Rincian harian hanya dicetak kalau jumlahnya sama dengan omzet
-            // di ringkasan; kalau tidak, dua angka di satu halaman bertentangan.
-            'showDays' => $this->report['summary']['tax_base'] === $this->report['sales'],
+            'showDays' => true,
             'columns' => TaxMonthExport::dayColumns(),
             'letterhead' => config('zeytin.letterhead'),
         ])
@@ -38,6 +36,51 @@ class TaxMonthPdf
         );
 
         return $pdf->output();
+    }
+
+    /**
+     * Rincian harian disesuaikan dengan omzet di ringkasan (setelah
+     * potongan), supaya total tabel sama persis dengan omzet itu. Selisih
+     * pembulatan ditaruh di hari terakhir yang ada penjualannya.
+     *
+     * @param  array<string, mixed>  $report
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    public static function scaledDays(array $report): \Illuminate\Support\Collection
+    {
+        $days = $report['days'];
+        $sales = (int) $report['sales'];
+        $target = (int) $report['summary']['tax_base'];
+
+        if ($sales <= 0 || $target === $sales) {
+            return $days;
+        }
+
+        $factor = $target / $sales;
+        $inSales = \App\Support\Zeytin\Channels::inSales();
+
+        $days = $days->map(function (array $day) use ($factor, $inSales) {
+            foreach (\App\Support\Zeytin\Channels::keys() as $key) {
+                $day[$key] = (int) round($day[$key] * $factor);
+            }
+
+            $day['total_sales'] = array_sum(array_map(fn ($key) => $day[$key], $inSales));
+
+            return $day;
+        })->values();
+
+        $diff = $target - (int) $days->sum('total_sales');
+        $last = $days->keys()->reverse()->first(fn ($i) => $days[$i]['total_sales'] > 0);
+
+        if ($diff !== 0 && $last !== null) {
+            $day = $days[$last];
+            $key = collect($inSales)->sortByDesc(fn ($k) => $day[$k])->first();
+            $day[$key] += $diff;
+            $day['total_sales'] += $diff;
+            $days[$last] = $day;
+        }
+
+        return $days;
     }
 
     public function filename(): string
