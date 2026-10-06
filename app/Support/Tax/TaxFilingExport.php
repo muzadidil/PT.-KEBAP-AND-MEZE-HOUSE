@@ -43,6 +43,26 @@ class TaxFilingExport
         ];
     }
 
+    /**
+     * Kolom PDF: omzet tampil sebagai satu angka (dasar pajak), tanpa kolom
+     * omzet sistem, omzet dilaporkan, atau bagi hasil. Excel dan layar tetap
+     * memakai columns() yang lengkap.
+     *
+     * @return array<int, array{key: string, label: string, money: bool}>
+     */
+    public static function pdfColumns(): array
+    {
+        return array_values(array_map(
+            fn (array $column) => $column['key'] === 'tax_base'
+                ? [...$column, 'label' => __('tax_filing.col.omzet')]
+                : $column,
+            array_filter(
+                static::columns(),
+                fn (array $column) => ! in_array($column['key'], ['system_revenue', 'revenue', 'investor_share'], true),
+            ),
+        ));
+    }
+
     /** Nilai satu sel; kolom status ditulis sebagai kata. */
     public static function cell(array $row, string $key): mixed
     {

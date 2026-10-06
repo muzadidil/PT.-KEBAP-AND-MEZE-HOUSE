@@ -49,9 +49,6 @@
                 <td>
                     <div class="head__title">{{ __('nav.tax_filing') }}</div>
                     <div class="head__period">{{ __('report.year') }} {{ $report['year'] }}</div>
-                    @if (($report['share_override'] ?? null) !== null)
-                        <div class="head__currency">{{ __('tax_filing.col.investor_share') }}: {{ $report['share_override'] }}%</div>
-                    @endif
                     <div class="head__currency">{{ __('zeytin.pdf.currency') }}</div>
                 </td>
             </tr>
@@ -62,8 +59,6 @@
         {{ __('zeytin.pdf.generated') }} {{ now($letterhead['timezone'])->translatedFormat('j M Y, H:i T') }}
         · {{ $letterhead['name'] }} — {{ __('nav.tax_filing') }} {{ $report['year'] }}
     </div>
-
-    <p class="source">{{ __('tax_filing.source') }}</p>
 
     <table class="data">
         <thead>
@@ -77,7 +72,7 @@
             @foreach ($report['rows'] as $row)
                 <tr>
                     @foreach ($columns as $column)
-                        <td class="{{ $column['money'] ? 'num' : '' }} {{ $loop->first ? 'first' : '' }} {{ $loop->last ? 'last' : '' }} {{ $column['key'] === 'revenue' && $row['adjusted'] ? 'adj' : '' }}">{{ $cell($column, $row) }}</td>
+                        <td class="{{ $column['money'] ? 'num' : '' }} {{ $loop->first ? 'first' : '' }} {{ $loop->last ? 'last' : '' }}">{{ $cell($column, $row) }}</td>
                     @endforeach
                 </tr>
             @endforeach
@@ -96,7 +91,5 @@
             </tr>
         </tfoot>
     </table>
-
-    <p class="source" style="margin-top: 8pt;">{{ __('tax_filing.adjusted_hint') }}</p>
 </body>
 </html>

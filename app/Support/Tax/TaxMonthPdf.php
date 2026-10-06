@@ -16,7 +16,10 @@ class TaxMonthPdf
     {
         $pdf = Pdf::loadView('pdf.tax-month', [
             'report' => $this->report,
-            'lines' => TaxMonthExport::summaryLines($this->report['summary']),
+            'lines' => TaxMonthExport::pdfSummaryLines($this->report['summary']),
+            // Rincian harian hanya dicetak kalau jumlahnya sama dengan omzet
+            // di ringkasan; kalau tidak, dua angka di satu halaman bertentangan.
+            'showDays' => $this->report['summary']['tax_base'] === $this->report['sales'],
             'columns' => TaxMonthExport::dayColumns(),
             'letterhead' => config('zeytin.letterhead'),
         ])

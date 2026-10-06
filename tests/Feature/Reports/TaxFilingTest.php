@@ -261,19 +261,42 @@ class TaxFilingTest extends TestCase
             ->assertSee('name="month" value="8"', false);
     }
 
-    public function test_isi_pdf_berbeda_menurut_persen(): void
+    public function test_pdf_hanya_menampilkan_omzet_setelah_potongan_tanpa_keterangan(): void
     {
         $this->sales('2026-08-05', 10_000_000);
 
-        $html = fn (?float $share) => view('pdf.tax-month', [
-            'report' => $r = TaxFilingReport::month(2026, 8, $share),
-            'lines' => \App\Support\Tax\TaxMonthExport::summaryLines($r['summary']),
-            'columns' => \App\Support\Tax\TaxMonthExport::dayColumns(),
+        $month = function (?float $share) {
+            $r = TaxFilingReport::month(2026, 8, $share);
+
+            return view('pdf.tax-month', [
+                'report' => $r,
+                'lines' => \App\Support\Tax\TaxMonthExport::pdfSummaryLines($r['summary']),
+                'columns' => \App\Support\Tax\TaxMonthExport::dayColumns(),
+                'showDays' => $r['summary']['tax_base'] === $r['sales'],
+                'letterhead' => config('zeytin.letterhead'),
+            ])->render();
+        };
+
+        $cut = $month(40);
+        $this->assertStringContainsString('6.000.000', $cut);
+        $this->assertStringNotContainsString('40%', $cut);
+        $this->assertStringNotContainsString('10.000.000', $cut);
+        $this->assertStringNotContainsString(__('tax_filing.col.investor_share'), $cut);
+        $this->assertStringNotContainsString(__('tax_filing.col.system_revenue'), $cut);
+        $this->assertStringNotContainsString(__('tax_filing.month.daily_title'), $cut);
+
+        // Tanpa potongan, rincian harian tetap dicetak.
+        $this->assertStringContainsString(__('tax_filing.month.daily_title'), $month(0));
+
+        $year = view('pdf.tax-filing', [
+            'report' => TaxFilingReport::year(2026, 40),
+            'columns' => \App\Support\Tax\TaxFilingExport::pdfColumns(),
             'letterhead' => config('zeytin.letterhead'),
         ])->render();
 
-        $this->assertStringContainsString('6.000.000', $html(40)); // dasar pajak 60%
-        $this->assertStringContainsString('40%', $html(40));
-        $this->assertStringNotContainsString('6.000.000', $html(0));
+        $this->assertStringContainsString('6.000.000', $year);
+        $this->assertStringNotContainsString('40%', $year);
+        $this->assertStringNotContainsString('10.000.000', $year);
+        $this->assertStringNotContainsString(__('tax_filing.col.investor_share'), $year);
     }
 }

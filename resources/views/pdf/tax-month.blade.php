@@ -51,9 +51,6 @@
                 <td>
                     <div class="head__title">{{ __('nav.tax_filing') }}</div>
                     <div class="head__period">{{ $report['label'] }}</div>
-                    @if (($report['share_override'] ?? null) !== null)
-                        <div class="head__currency">{{ __('tax_filing.col.investor_share') }}: {{ $report['share_override'] }}%</div>
-                    @endif
                     <div class="head__currency">{{ __('zeytin.pdf.currency') }}</div>
                 </td>
             </tr>
@@ -65,8 +62,6 @@
         · {{ $letterhead['name'] }} — {{ __('nav.tax_filing') }} {{ $report['label'] }}
     </div>
 
-    <p class="source">{{ __('tax_filing.source') }}</p>
-
     <table class="sum">
         @foreach ($lines as [$label, $value, $money])
             <tr>
@@ -76,6 +71,7 @@
         @endforeach
     </table>
 
+    @if ($showDays)
     <h3>{{ __('tax_filing.month.daily_title') }}</h3>
 
     <table class="data">
@@ -105,7 +101,6 @@
             </tr>
         </tfoot>
     </table>
-
-    <p class="source" style="margin-top: 8pt;">{{ __('tax_filing.adjusted_hint') }}</p>
+    @endif
 </body>
 </html>

@@ -26,6 +26,7 @@ return [
 
     'col' => [
         'system_revenue' => 'System revenue',
+        'omzet' => 'Revenue',
         'investor_share' => 'Local investor share',
         'tax_base' => 'Tax base',
         'revenue' => 'Revenue reported',

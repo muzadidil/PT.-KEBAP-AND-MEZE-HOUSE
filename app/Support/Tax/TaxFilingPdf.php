@@ -16,7 +16,7 @@ class TaxFilingPdf
     {
         $pdf = Pdf::loadView('pdf.tax-filing', [
             'report' => $this->report,
-            'columns' => TaxFilingExport::columns(),
+            'columns' => TaxFilingExport::pdfColumns(),
             'letterhead' => config('zeytin.letterhead'),
         ])
             ->setPaper('a4', 'landscape')

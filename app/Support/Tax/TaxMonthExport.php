@@ -50,6 +50,34 @@ class TaxMonthExport
         ];
     }
 
+    /**
+     * Ringkasan untuk PDF: omzet tampil sebagai satu angka (dasar pajak),
+     * tanpa baris omzet sistem, omzet dilaporkan, atau bagi hasil.
+     *
+     * @return array<int, array{0: string, 1: mixed, 2: bool}>
+     */
+    public static function pdfSummaryLines(array $summary): array
+    {
+        $hidden = [
+            __('tax_filing.col.system_revenue'),
+            __('tax_filing.col.revenue'),
+            __('tax_filing.field.investor_share'),
+            __('tax_filing.col.investor_share'),
+        ];
+
+        $lines = array_values(array_filter(
+            static::summaryLines($summary),
+            fn (array $line) => ! in_array($line[0], $hidden, true),
+        ));
+
+        return array_map(
+            fn (array $line) => $line[0] === __('tax_filing.col.tax_base')
+                ? [__('tax_filing.col.omzet'), $line[1], $line[2]]
+                : $line,
+            $lines,
+        );
+    }
+
     /** @return array<int, array{key: string, label: string}> */
     public static function dayColumns(): array
     {

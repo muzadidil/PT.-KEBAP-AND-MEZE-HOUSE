@@ -26,6 +26,7 @@ return [
 
     'col' => [
         'system_revenue' => 'Omzet sistem',
+        'omzet' => 'Omzet',
         'investor_share' => 'Bagi hasil investor lokal',
         'tax_base' => 'Dasar pajak',
         'revenue' => 'Omzet dilaporkan',
