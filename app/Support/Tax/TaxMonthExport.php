@@ -63,6 +63,9 @@ class TaxMonthExport
             __('tax_filing.col.revenue'),
             __('tax_filing.field.investor_share'),
             __('tax_filing.col.investor_share'),
+            // Tidak ada baris persen apa pun di PDF.
+            __('tax_filing.field.final_rate'),
+            __('tax_filing.field.ppn_rate'),
         ];
 
         $lines = array_values(array_filter(

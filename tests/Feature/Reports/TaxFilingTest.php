@@ -279,7 +279,7 @@ class TaxFilingTest extends TestCase
 
         $cut = $month(40);
         $this->assertStringContainsString('6.000.000', $cut);
-        $this->assertStringNotContainsString('40%', $cut);
+        $this->assertStringNotContainsString('%', strip_tags(preg_replace('/<style.*?<\/style>/s', '', $cut)));
         $this->assertStringNotContainsString('10.000.000', $cut);
         $this->assertStringNotContainsString(__('tax_filing.col.investor_share'), $cut);
         $this->assertStringNotContainsString(__('tax_filing.col.system_revenue'), $cut);
