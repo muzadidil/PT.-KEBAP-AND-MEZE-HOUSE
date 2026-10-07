@@ -2,7 +2,9 @@
 
 namespace App\Support\Zeytin;
 
+use App\Enums\PaymentMethod;
 use App\Models\DailyIncome;
+use App\Models\Expense;
 use App\Models\Purchase;
 use App\Models\Setting;
 use Illuminate\Support\Carbon;
@@ -11,12 +13,17 @@ use Illuminate\Support\Collection;
 /**
  * Sisa uang cash di kasir.
  *
- *   saldo = saldo awal + penjualan cash − belanja tunai
+ *   saldo = saldo awal + penjualan cash − pengeluaran tunai
  *
- * Penjualan cash dan belanja tunai dibaca dari sumber yang sama dengan Buku
- * Besar Bulanan (DailyLedger). Petty cash tidak ikut, sama seperti di
- * Total Sales: rumus aslinya memang melewati kolom itu. Transfer pemasok
- * lewat bank dan gaji tidak diasumsikan tunai, jadi keduanya tidak ikut.
+ * Penjualan cash dibaca dari Pemasukan Harian, sama dengan Buku Besar
+ * Bulanan. Pengeluaran tunai ada dua sumber: Belanja Tunai, dan menu
+ * Pengeluaran yang cara bayarnya Cash (termasuk gaji tunai). Pengeluaran
+ * yang ditalangi pemilik atau belum dibayar tidak keluar dari laci, jadi
+ * tidak ikut. Petty cash tidak ikut, sama seperti di Total Sales. Transfer
+ * pemasok lewat bank.
+ *
+ * Awas dobel: kalau belanja yang sama dicatat di Belanja Tunai DAN di
+ * Pengeluaran, ia terkurang dua kali.
  *
  * Saldo awal dan tanggalnya diatur di halaman; hitungan dimulai pada
  * tanggal itu. Tanpa tanggal, semua catatan dihitung dengan saldo awal 0.
@@ -45,6 +52,32 @@ class CashBalance
     }
 
     /**
+     * Pengeluaran tunai dari menu Pengeluaran per tanggal (Y-m-d => jumlah).
+     * Hanya yang keluar dari laci: cara bayar Cash, sudah dibayar, dan
+     * bukan talangan pemilik.
+     *
+     * @return array<string, int>
+     */
+    protected static function expensesByDate(Carbon $from, Carbon $to): array
+    {
+        $methods = array_map(
+            fn (PaymentMethod $m) => $m->value,
+            array_filter(PaymentMethod::cases(), fn (PaymentMethod $m) => $m->isCash()),
+        );
+
+        return Expense::query()
+            ->whereIn('method', $methods)
+            ->where('is_paid', true)
+            ->whereNull('paid_by_owner_id')
+            ->whereDate('spent_on', '>=', $from->toDateString())
+            ->whereDate('spent_on', '<=', $to->toDateString())
+            ->get()
+            ->groupBy(fn (Expense $e) => $e->spent_on->toDateString())
+            ->map(fn (Collection $rows) => (int) $rows->sum('amount'))
+            ->all();
+    }
+
+    /**
      * Saldo harian sepanjang rentang.
      *
      * @return array{rows: Collection<int, array<string, mixed>>, start_balance: int, end_balance: int, cash_in: int, cash_out: int, opening: array{amount: int, date: ?string}}
@@ -69,7 +102,8 @@ class CashBalance
             $out = (int) Purchase::query()
                 ->whereDate('date', '>=', $start->toDateString())
                 ->whereDate('date', '<', $from->toDateString())
-                ->sum('total');
+                ->sum('total')
+                + array_sum(static::expensesByDate($start, $from->copy()->subDay()));
 
             $running = $opening['amount'] + $in - $out;
         }
@@ -78,10 +112,12 @@ class CashBalance
         $totalIn = 0;
         $totalOut = 0;
 
-        $rows = DailyLedger::daily($from, $to)->map(function (array $day) use (&$running, &$totalIn, &$totalOut, $start, $opening) {
+        $expenses = static::expensesByDate($from, $to);
+
+        $rows = DailyLedger::daily($from, $to)->map(function (array $day) use (&$running, &$totalIn, &$totalOut, $start, $opening, $expenses) {
             $counted = ! $day['date']->lt($start);
             $in = $counted ? static::cashIn($day) : 0;
-            $out = $counted ? (int) $day['expense'] : 0;
+            $out = $counted ? (int) $day['expense'] + ($expenses[$day['date']->toDateString()] ?? 0) : 0;
             $before = $running;
 
             if ($counted && $day['date']->isSameDay($start)) {

@@ -4,7 +4,7 @@ return [
 
     'nav' => 'Cash Left in Till',
     'saved' => 'Saved',
-    'formula' => 'Cash left = opening balance + cash sales − cash purchases. Read from Daily Income and Cash Purchases, the same as the Monthly Ledger. Petty cash, supplier transfers and payroll are not counted.',
+    'formula' => 'Cash left = opening balance + cash sales − cash expenses. Cash sales come from Daily Income. Cash expenses: Cash Purchases, plus Expenses paid in Cash (including cash salaries). Owner-funded, unpaid or transfer expenses are not counted, nor is petty cash. Do not record the same purchase in both menus: it would be deducted twice.',
     'before_opening' => 'Before the opening date, not counted',
 
     'card' => [
@@ -18,7 +18,7 @@ return [
     'col' => [
         'opening' => 'Opening',
         'cash_in' => 'Cash sales',
-        'cash_out' => 'Cash purchases',
+        'cash_out' => 'Cash expenses',
         'balance' => 'Cash left',
     ],
 

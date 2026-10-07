@@ -3,7 +3,10 @@
 namespace Tests\Feature\Zeytin;
 
 use App\Filament\Admin\Pages\Zeytin\CashBalancePage;
+use App\Enums\ExpenseCategory;
+use App\Enums\PaymentMethod;
 use App\Models\DailyIncome;
+use App\Models\Expense;
 use App\Models\Purchase;
 use App\Support\Zeytin\CashBalance;
 use App\Support\Zeytin\Channels;
@@ -91,5 +94,30 @@ class CashBalanceTest extends TestCase
         $page->callAction('opening', ['amount' => 2_000_000, 'date' => '2026-09-01'])
             ->assertHasNoActionErrors()
             ->assertSee('Rp 2.350.000');
+    }
+
+    public function test_pengeluaran_tunai_dari_menu_pengeluaran_ikut_mengurangi(): void
+    {
+        [$aslan] = $this->owners();
+
+        $expense = fn (array $attributes) => Expense::create([
+            'spent_on' => '2026-09-30', 'category' => ExpenseCategory::Operational, 'description' => 'x',
+            'method' => PaymentMethod::Cash, 'amount' => 10_000, 'is_paid' => true, ...$attributes,
+        ]);
+
+        $expense(['amount' => 20_000, 'category' => ExpenseCategory::Salary]);   // gaji tunai: ikut
+        $expense(['amount' => 5_000]);                                           // operasional tunai: ikut
+        $expense(['amount' => 70_000, 'method' => PaymentMethod::Transfer]);     // lewat rekening: tidak
+        $expense(['amount' => 80_000, 'is_paid' => false]);                      // belum dibayar: tidak
+        $expense(['amount' => 90_000, 'paid_by_owner_id' => $aslan->id]);        // talangan pemilik: tidak
+
+        $report = CashBalance::report(Carbon::parse('2026-09-01'), Carbon::parse('2026-10-05'));
+
+        $this->assertSame(50_000 + 25_000, $report['cash_out']);
+        $this->assertSame(1_350_000 - 25_000, $report['end_balance']);
+
+        // Rentang yang dimulai sesudahnya membawa pengeluaran itu sebagai saldo awal.
+        $later = CashBalance::report(Carbon::parse('2026-10-01'), Carbon::parse('2026-10-05'));
+        $this->assertSame(1_325_000, $later['start_balance']);
     }
 }

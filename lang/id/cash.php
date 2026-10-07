@@ -4,7 +4,7 @@ return [
 
     'nav' => 'Sisa Cash Kasir',
     'saved' => 'Tersimpan',
-    'formula' => 'Sisa cash = saldo awal + penjualan cash − belanja tunai. Dibaca dari Pemasukan Harian dan Belanja Tunai, sama dengan Buku Besar Bulanan. Petty cash, transfer pemasok, dan gaji tidak dihitung.',
+    'formula' => 'Sisa cash = saldo awal + penjualan cash − pengeluaran tunai. Penjualan cash dari Pemasukan Harian. Pengeluaran tunai: Belanja Tunai, ditambah menu Pengeluaran yang dibayar Cash (termasuk gaji tunai). Yang ditalangi pemilik, belum dibayar, atau lewat transfer tidak dihitung, begitu juga petty cash. Hindari mencatat belanja yang sama di dua menu: akan terkurang dua kali.',
     'before_opening' => 'Sebelum tanggal mulai, tidak dihitung',
 
     'card' => [
@@ -18,7 +18,7 @@ return [
     'col' => [
         'opening' => 'Saldo awal',
         'cash_in' => 'Penjualan cash',
-        'cash_out' => 'Belanja tunai',
+        'cash_out' => 'Pengeluaran tunai',
         'balance' => 'Sisa cash',
     ],
 
