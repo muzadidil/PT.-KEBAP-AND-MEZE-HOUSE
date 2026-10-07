@@ -1493,7 +1493,7 @@ body.fi-body {
         url('../img/work-bg.jpg');
     background-repeat: no-repeat;
     background-position: center;
-    background-size: auto, min(78vh, 760px);
+    background-size: cover;
     background-attachment: fixed;
 }
 
