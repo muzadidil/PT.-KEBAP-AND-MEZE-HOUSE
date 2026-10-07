@@ -35,6 +35,7 @@ class PanelAccessTest extends TestCase
             'salary' => ['filament.admin.pages.salary'],
             'tax' => ['filament.admin.pages.tax'],
             'tax filings' => ['filament.admin.pages.tax-filings'],
+            'owner salaries' => ['filament.admin.resources.zeytin.owner-salaries.index'],
             'owner expenses' => ['filament.admin.pages.owner-expenses'],
             'balance sheet' => ['filament.admin.pages.balance-sheet'],
             'expenses' => ['filament.admin.resources.expenses.index'],

@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Employees\EmployeeResource;
 use App\Filament\Admin\Resources\Expenses\ExpenseResource;
 use App\Filament\Admin\Resources\PayComponents\PayComponentResource;
 use App\Filament\Admin\Resources\Payslips\PayslipResource;
+use App\Filament\Admin\Resources\Zeytin\OwnerSalaries\OwnerSalaryResource;
 use App\Filament\Admin\Resources\Products\ProductResource;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
 use App\Filament\Admin\Resources\Suppliers\SupplierResource;
@@ -58,6 +59,8 @@ class ExcelImportTest extends TestCase
         // Slip dibuat dari data karyawan dan komponen gaji, bernomor urut;
         // keduanya sudah bisa diimpor.
         PayslipResource::class,
+        // Dua pemilik, satu baris per bulan: diketik langsung, tidak perlu berkas.
+        OwnerSalaryResource::class,
     ];
 
     protected function setUp(): void

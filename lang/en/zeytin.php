@@ -16,6 +16,7 @@ return [
         'purchases' => 'Cash Purchases',
         'transfers' => 'Supplier Transfers',
         'payroll' => 'Payroll',
+        'owner_salary' => 'Owner Salary',
         'outstanding' => 'Outstanding Invoices',
         'purchase_items' => 'Purchased Goods',
         'payment_methods' => 'Payment Methods',
@@ -55,6 +56,9 @@ return [
     ],
 
     'field' => [
+        'owner' => 'Owner',
+        'period' => 'Period (year and month)',
+        'amount' => 'Amount',
         'vendor' => 'Vendor',
         'item' => 'Item',
         'qty' => 'Qty',
@@ -256,6 +260,7 @@ return [
     ],
 
     'help' => [
+        'owner_salary_exists' => 'This owner already has a salary for that month. Edit the existing row instead.',
         'price' => 'Only a starting suggestion — type over it whenever the supplier’s price has changed.',
         'total' => 'Calculated as (qty × price) + tax − discount, the formula from the original spreadsheet.',
         'source' => 'Rows brought in by an Excel file are marked so a later import may replace them. A row you edit here becomes yours, and no import will overwrite it.',

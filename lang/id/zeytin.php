@@ -8,6 +8,7 @@ return [
         'purchases' => 'Belanja Tunai',
         'transfers' => 'Transfer Pemasok',
         'payroll' => 'Gaji',
+        'owner_salary' => 'Gaji Pemilik',
         'outstanding' => 'Tagihan Belum Dibayar',
         'purchase_items' => 'Barang Belanja',
         'payment_methods' => 'Cara Bayar',
@@ -47,6 +48,9 @@ return [
     ],
 
     'field' => [
+        'owner' => 'Pemilik',
+        'period' => 'Periode (tahun dan bulan)',
+        'amount' => 'Nominal',
         'vendor' => 'Pemasok',
         'item' => 'Barang',
         'qty' => 'Jumlah',
@@ -248,6 +252,7 @@ return [
     ],
 
     'help' => [
+        'owner_salary_exists' => 'Pemilik ini sudah punya gaji di bulan itu. Ubah baris yang sudah ada.',
         'price' => 'Cuma tawaran awal — timpa saja begitu harga pemasoknya berubah.',
         'total' => 'Dihitung (jumlah × harga) + pajak − potongan, rumus dari berkas Excel aslinya.',
         'source' => 'Baris yang dibawa berkas Excel ditandai, jadi impor berikutnya boleh menggantinya. Baris yang Anda ubah di sini menjadi milik Anda, dan tidak akan ditimpa impor.',
