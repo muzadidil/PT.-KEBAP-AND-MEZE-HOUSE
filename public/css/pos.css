@@ -1483,3 +1483,29 @@
     font-size: .8125rem;
     margin-right: .125rem;
 }
+
+/* ------------------------------------------------------------------ */
+/* Latar halaman kerja: lambang di tengah, dibuat pudar supaya angka dan
+   tabel tetap terbaca. Berlaku di panel admin dan kasir. Tidak tercetak. */
+body.fi-body {
+    background-image:
+        linear-gradient(rgba(249, 250, 251, 0.93), rgba(249, 250, 251, 0.93)),
+        url('../img/work-bg.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: auto, min(78vh, 760px);
+    background-attachment: fixed;
+}
+
+html.dark body.fi-body {
+    background-image:
+        linear-gradient(rgba(3, 7, 18, 0.9), rgba(3, 7, 18, 0.9)),
+        url('../img/work-bg.jpg');
+}
+
+@media print {
+    body.fi-body,
+    html.dark body.fi-body {
+        background: none !important;
+    }
+}
