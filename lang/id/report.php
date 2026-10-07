@@ -16,6 +16,8 @@ return [
     'average_per_recorded_day' => 'Rata-rata per hari tercatat',
     'average_hint' => 'Dari :days hari yang ada catatan penjualannya.',
     'no_data' => 'Belum ada yang tercatat di periode ini.',
+    'all_channels' => 'Semua cara bayar',
+    'sales_of' => 'Penjualan — :channel',
     'print' => 'Cetak',
     'source_bookkeeping' => 'Sumber: Pemasukan Harian di Pembukuan Bulanan — sama dengan Buku Besar Bulanan.',
     'open_ledger' => 'Buka Buku Besar untuk rentang ini',

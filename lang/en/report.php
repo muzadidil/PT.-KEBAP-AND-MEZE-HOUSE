@@ -16,6 +16,8 @@ return [
     'average_per_recorded_day' => 'Average per recorded day',
     'average_hint' => 'Over the :days days that have sales recorded.',
     'no_data' => 'Nothing recorded in this period.',
+    'all_channels' => 'All payment methods',
+    'sales_of' => 'Sales — :channel',
     'print' => 'Print',
     'source_bookkeeping' => 'Source: Daily Income in Monthly Bookkeeping — the same as the Monthly Ledger.',
     'open_ledger' => 'Open the ledger for this range',

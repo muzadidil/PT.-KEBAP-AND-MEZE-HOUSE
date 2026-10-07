@@ -2,7 +2,11 @@
     $rows = $this->rows;
     $report = $this->report;
     $daily = $this->isDaily();
-    $channels = \App\Support\Zeytin\Channels::all();
+    $only = $this->activeChannel();
+    $channels = array_values(array_filter(
+        \App\Support\Zeytin\Channels::all(),
+        fn ($c) => ! $only || $c['key'] === $only,
+    ));
 @endphp
 
 <x-filament-panels::page>
@@ -16,6 +20,19 @@
         </button>
     </x-report-period>
 
+    {{-- Pilihan cara bayar: semua, atau satu saja (Cash, BNI, Grab Food, ...) --}}
+    <div class="filters__presets">
+        <button type="button" class="pos__chip" wire:click="$set('channel', '')" @if (! $only) aria-current="true" @endif>
+            {{ __('report.all_channels') }}
+        </button>
+
+        @foreach ($this->channelOptions() as $option)
+            <button type="button" class="pos__chip" wire:click="$set('channel', '{{ $option['key'] }}')" @if ($only === $option['key']) aria-current="true" @endif>
+                {{ $option['label'] }}
+            </button>
+        @endforeach
+    </div>
+
     {{-- Asal angkanya ditulis di layar, supaya tidak ada yang mengira
          laporan ini dan Buku Besar menghitung dari tempat berbeda. --}}
     <p class="report__note">
@@ -26,8 +43,8 @@
     {{-- Ringkasan --}}
     <div class="stats">
         <div class="stat">
-            <div class="stat__label">{{ __('zeytin.card.sales') }}</div>
-            <div class="stat__value">{{ $this->money($report['total_sales']) }}</div>
+            <div class="stat__label">{{ $only ? __('report.sales_of', ['channel' => $this->activeChannelLabel()]) : __('zeytin.card.sales') }}</div>
+            <div class="stat__value">{{ $this->money($this->totalAmount()) }}</div>
             <div class="stat__hint">
                 {{ __('zeytin.hint.recorded_days', ['recorded' => $report['recorded_days'], 'days' => $report['days']]) }}
             </div>
@@ -35,6 +52,7 @@
 
         {{-- Rinciannya ditulis di kartu: angka pengeluaran tanpa rincian
              selalu memancing pertanyaan "ini dari mana". --}}
+        @unless ($only)
         <div class="stat">
             <div class="stat__label">{{ __('zeytin.card.total_expenses') }}</div>
             <div class="stat__value">{{ $this->money($report['total_expenses']) }}</div>
@@ -51,11 +69,12 @@
                 {{ $this->money($report['net_profit']) }}
             </div>
         </div>
+        @endunless
 
         <div class="stat">
             <div class="stat__label">{{ __('report.average_per_recorded_day') }}</div>
             <div class="stat__value">{{ $this->money($this->averagePerDay()) }}</div>
-            <div class="stat__hint">{{ __('report.average_hint', ['days' => $report['recorded_days']]) }}</div>
+            <div class="stat__hint">{{ __('report.average_hint', ['days' => $this->averageDays()]) }}</div>
         </div>
     </div>
 
@@ -82,7 +101,9 @@
                             </th>
                         @endforeach
 
-                        <th class="num">{{ __('zeytin.col.total_sales') }}</th>
+                        @unless ($only)
+                            <th class="num">{{ __('zeytin.col.total_sales') }}</th>
+                        @endunless
                     </tr>
                 </thead>
 
@@ -99,7 +120,9 @@
                                 <td class="num">{{ $this->money($row[$channel['key']]) }}</td>
                             @endforeach
 
-                            <td class="num">{{ $this->money($row['total_sales']) }}</td>
+                            @unless ($only)
+                                <td class="num">{{ $this->money($row['total_sales']) }}</td>
+                            @endunless
                         </tr>
                     @endforeach
                 </tbody>
@@ -116,7 +139,9 @@
                             <td class="num">{{ $this->money($report['by_channel'][$channel['key']]) }}</td>
                         @endforeach
 
-                        <td class="num">{{ $this->money($report['total_sales']) }}</td>
+                        @unless ($only)
+                            <td class="num">{{ $this->money($report['total_sales']) }}</td>
+                        @endunless
                     </tr>
                 </tfoot>
             </table>

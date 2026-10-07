@@ -13,6 +13,7 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
@@ -37,6 +38,10 @@ abstract class SalesReport extends Page
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected string $view = 'filament.admin.pages.reports.sales';
+
+    /** Cara bayar yang ditampilkan; kosong = semua (Total Penjualan). */
+    #[Url]
+    public string $channel = '';
 
     public static function getNavigationGroup(): string|UnitEnum|null
     {
@@ -84,9 +89,22 @@ abstract class SalesReport extends Page
      */
     public function averagePerDay(): int
     {
-        $days = $this->report['recorded_days'];
+        $channel = $this->activeChannel();
+        $days = $channel
+            ? $this->report['rows']->filter(fn (array $row) => $row[$channel] > 0)->count()
+            : $this->report['recorded_days'];
 
-        return $days > 0 ? intdiv($this->report['total_sales'], $days) : 0;
+        return $days > 0 ? intdiv($this->totalAmount(), $days) : 0;
+    }
+
+    /** Hari yang dihitung untuk rata-rata: yang ada penjualannya (di cara bayar terpilih). */
+    public function averageDays(): int
+    {
+        $channel = $this->activeChannel();
+
+        return $channel
+            ? $this->report['rows']->filter(fn (array $row) => $row[$channel] > 0)->count()
+            : (int) $this->report['recorded_days'];
     }
 
     /** Buku Besar Bulanan untuk rentang yang sama, tempat angkanya dirinci. */
@@ -116,15 +134,21 @@ abstract class SalesReport extends Page
             $heading[] = __('report.days');
         }
 
+        $only = $this->activeChannel();
+
         foreach (Channels::all() as $channel) {
-            $heading[] = $channel['label'];
+            if (! $only || $channel['key'] === $only) {
+                $heading[] = $channel['label'];
+            }
         }
 
-        $heading[] = __('zeytin.col.total_sales');
+        if (! $only) {
+            $heading[] = __('zeytin.col.total_sales');
+        }
 
         $filename = str(static::getNavigationLabel())->slug().'-'.$this->from.'-'.$this->to.'.csv';
 
-        return response()->streamDownload(function () use ($rows, $report, $heading, $daily) {
+        return response()->streamDownload(function () use ($rows, $report, $heading, $daily, $only) {
             $handle = fopen('php://output', 'wb');
 
             // BOM supaya Excel membaca huruf beraksen dengan benar.
@@ -139,10 +163,14 @@ abstract class SalesReport extends Page
                 }
 
                 foreach (Channels::keys() as $key) {
-                    $line[] = $row[$key];
+                    if (! $only || $key === $only) {
+                        $line[] = $row[$key];
+                    }
                 }
 
-                $line[] = $row['total_sales'];
+                if (! $only) {
+                    $line[] = $row['total_sales'];
+                }
 
                 fputcsv($handle, $line);
             }
@@ -154,15 +182,58 @@ abstract class SalesReport extends Page
             }
 
             foreach (Channels::keys() as $key) {
-                $footer[] = $report['by_channel'][$key];
+                if (! $only || $key === $only) {
+                    $footer[] = $report['by_channel'][$key];
+                }
             }
 
-            $footer[] = $report['total_sales'];
+            if (! $only) {
+                $footer[] = $report['total_sales'];
+            }
 
             fputcsv($handle, $footer);
 
             fclose($handle);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Cara bayar yang ikut Total Penjualan, untuk pilihan di atas tabel.
+     * Petty cash tidak termasuk: itu bukan penjualan.
+     *
+     * @return array<int, array{key: string, label: string}>
+     */
+    public function channelOptions(): array
+    {
+        return array_values(array_map(
+            fn (array $c) => ['key' => $c['key'], 'label' => $c['label']],
+            array_filter(Channels::all(), fn (array $c) => $c['in_sales']),
+        ));
+    }
+
+    /** Cara bayar terpilih, atau null kalau semua (atau nilainya tidak dikenal). */
+    public function activeChannel(): ?string
+    {
+        return in_array($this->channel, array_column($this->channelOptions(), 'key'), true) ? $this->channel : null;
+    }
+
+    public function activeChannelLabel(): ?string
+    {
+        return $this->activeChannel() ? Channels::label($this->activeChannel()) : null;
+    }
+
+    /** Penjualan satu baris: cara bayar terpilih, atau totalnya. */
+    public function amount(array $row): int
+    {
+        return (int) $row[$this->activeChannel() ?? 'total_sales'];
+    }
+
+    /** Total seluruh rentang untuk cara bayar terpilih (atau semuanya). */
+    public function totalAmount(): int
+    {
+        $channel = $this->activeChannel();
+
+        return $channel ? (int) $this->report['by_channel'][$channel] : (int) $this->report['total_sales'];
     }
 
     /** Dipakai oleh view untuk memformat angka. */
