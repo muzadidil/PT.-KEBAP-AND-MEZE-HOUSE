@@ -66,7 +66,7 @@ return [
         'button' => 'Ubah',
         'heading' => 'Ubah :month',
         'description' => 'Khusus pelaporan. Kolom kosong memakai angka sistem atau tarif bawaan. Data asli tidak berubah.',
-        'revenue_hint' => 'Kosongkan untuk memakai omzet sistem.',
+        'revenue_hint' => 'Kosongkan (atau isi 0) untuk memakai omzet sistem.',
         'rate_hint' => 'Kosongkan untuk memakai tarif bawaan.',
         'save' => 'Simpan',
         'use_default' => 'Pakai bawaan',

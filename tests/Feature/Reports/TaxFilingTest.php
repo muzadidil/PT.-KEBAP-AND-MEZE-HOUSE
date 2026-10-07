@@ -303,4 +303,28 @@ class TaxFilingTest extends TestCase
         $this->assertStringNotContainsString('10.000.000', $year);
         $this->assertStringNotContainsString(__('tax_filing.col.investor_share'), $year);
     }
+
+    public function test_omzet_koreksi_kosong_atau_nol_kembali_ke_angka_sistem(): void
+    {
+        $this->sales('2026-09-05', 10_000_000);
+
+        $save = fn ($value) => Livewire::actingAs($this->admin())
+            ->test(TaxFilings::class)
+            ->set('year', 2026)
+            ->call('saveMonth', 9, [
+                'revenue_override' => $value, 'investor_share' => null, 'final_rate' => null, 'ppn_rate' => null,
+                'ppn_inclusive' => 'default', 'ppn_input' => 0, 'paid_final' => 0,
+                'paid_ppn' => 0, 'is_reported' => false, 'note' => null,
+            ]);
+        $revenue = fn () => TaxFilingReport::year(2026)['rows']->firstWhere('month', 9)['revenue'];
+
+        $save(8_000_000);
+        $this->assertSame(8_000_000, $revenue());
+
+        foreach ([0, '0', '', null] as $empty) {
+            $save(8_000_000);
+            $save($empty);
+            $this->assertSame(10_000_000, $revenue(), 'nilai kosong: '.var_export($empty, true));
+        }
+    }
 }

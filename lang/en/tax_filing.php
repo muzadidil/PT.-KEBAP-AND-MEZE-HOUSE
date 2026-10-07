@@ -66,7 +66,7 @@ return [
         'button' => 'Edit',
         'heading' => 'Edit :month',
         'description' => 'For reporting only. Empty fields use the system figure or the default rate. The original data is not changed.',
-        'revenue_hint' => 'Leave empty to use the system revenue.',
+        'revenue_hint' => 'Leave empty (or 0) to use the system revenue.',
         'rate_hint' => 'Leave empty to use the default rate.',
         'save' => 'Save',
         'use_default' => 'Use default',

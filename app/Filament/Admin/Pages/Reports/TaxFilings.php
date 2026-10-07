@@ -268,7 +268,10 @@ class TaxFilings extends Page
         $filing = TaxFiling::query()->firstOrNew(['year' => $this->year, 'month' => $month]);
 
         $new = [
-            'revenue_override' => filled($data['revenue_override'] ?? null) ? (int) $data['revenue_override'] : null,
+            // Kosong atau 0 berarti "pakai omzet sistem". Kolom angka yang
+            // dikosongkan bisa terkirim sebagai 0, dan 0 yang tersimpan akan
+            // mengunci omzet bulan itu di nol.
+            'revenue_override' => (int) ($data['revenue_override'] ?? 0) > 0 ? (int) $data['revenue_override'] : null,
             'investor_share' => filled($data['investor_share'] ?? null) ? (float) $data['investor_share'] : null,
             'final_rate' => filled($data['final_rate'] ?? null) ? (float) $data['final_rate'] : null,
             'ppn_rate' => filled($data['ppn_rate'] ?? null) ? (float) $data['ppn_rate'] : null,
