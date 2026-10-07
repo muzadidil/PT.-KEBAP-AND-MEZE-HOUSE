@@ -35,7 +35,6 @@ class PanelAccessTest extends TestCase
             'salary' => ['filament.admin.pages.salary'],
             'tax' => ['filament.admin.pages.tax'],
             'tax filings' => ['filament.admin.pages.tax-filings'],
-            'owner salaries' => ['filament.admin.resources.zeytin.owner-salaries.index'],
             'owner expenses' => ['filament.admin.pages.owner-expenses'],
             'balance sheet' => ['filament.admin.pages.balance-sheet'],
             'expenses' => ['filament.admin.resources.expenses.index'],
@@ -68,6 +67,7 @@ class PanelAccessTest extends TestCase
             'pay components' => ['filament.admin.resources.pay-components.index'],
             'payslips' => ['filament.admin.resources.payslips.index'],
             'payrolls' => ['filament.admin.resources.zeytin.payrolls.index'],
+            'owner salaries' => ['filament.admin.resources.zeytin.owner-salaries.index'],
         ];
     }
 

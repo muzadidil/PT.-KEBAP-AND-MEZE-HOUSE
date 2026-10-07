@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Zeytin\OwnerSalaries;
 
-use App\Filament\Admin\Concerns\ForAdmin;
+use App\Filament\Admin\Concerns\ForSuperAdmin;
 use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\OwnerSalaries\Pages\ManageOwnerSalaries;
 use App\Models\Owner;
@@ -26,19 +26,25 @@ use Illuminate\Support\Carbon;
 
 /**
  * Gaji pemilik (Aslan, Leo): pemilik, periode (tahun dan bulan), dan
- * nominal. Satu baris per pemilik per bulan. Berdiri sendiri: belum ikut
+ * nominal. Satu baris per pemilik per bulan. Hanya Super Admin, di grup
+ * Penggajian bersama karyawan dan slip gaji. Berdiri sendiri: belum ikut
  * hitungan Buku Besar Bulanan.
  */
 class OwnerSalaryResource extends Resource
 {
     use BookkeepingResource;
-    use ForAdmin;
+    use ForSuperAdmin;
 
     protected static ?string $model = OwnerSalary::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     protected static ?int $navigationSort = 45;
+
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('payroll.nav.group');
+    }
 
     public static function getNavigationLabel(): string
     {

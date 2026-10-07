@@ -10,7 +10,7 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Tests\TestCase;
 
-/** Gaji pemilik: pemilik, periode (tahun dan bulan), nominal. */
+/** Gaji pemilik (Super Admin): pemilik, periode (tahun dan bulan), nominal. */
 class OwnerSalaryTest extends TestCase
 {
     protected function setUp(): void
@@ -20,11 +20,11 @@ class OwnerSalaryTest extends TestCase
         Filament::setCurrentPanel('admin');
     }
 
-    public function test_admin_mencatat_gaji_pemilik_per_bulan(): void
+    public function test_super_admin_mencatat_gaji_pemilik_per_bulan(): void
     {
         [$aslan, $leo] = $this->owners();
 
-        Livewire::actingAs($this->admin())
+        Livewire::actingAs($this->superAdmin())
             ->test(ManageOwnerSalaries::class)
             ->callAction(CreateAction::class, [
                 'owner_id' => $aslan->id,
@@ -45,25 +45,26 @@ class OwnerSalaryTest extends TestCase
         [$aslan, $leo] = $this->owners();
         OwnerSalary::create(['owner_id' => $aslan->id, 'month' => '2026-09-01', 'amount' => 1]);
 
-        $page = Livewire::actingAs($this->admin())->test(ManageOwnerSalaries::class);
+        $page = Livewire::actingAs($this->superAdmin())->test(ManageOwnerSalaries::class);
 
         $page->callAction(CreateAction::class, ['owner_id' => $aslan->id, 'month' => '2026-09-20', 'amount' => 2])
             ->assertHasActionErrors(['month']);
         $this->assertSame(1, OwnerSalary::count());
 
         // Pemilik lain di bulan yang sama boleh.
-        Livewire::actingAs($this->admin())->test(ManageOwnerSalaries::class)
+        Livewire::actingAs($this->superAdmin())->test(ManageOwnerSalaries::class)
             ->callAction(CreateAction::class, ['owner_id' => $leo->id, 'month' => '2026-09-20', 'amount' => 2])
             ->assertHasNoActionErrors();
         $this->assertSame(2, OwnerSalary::count());
     }
 
-    public function test_menu_hanya_untuk_admin(): void
+    public function test_menu_hanya_untuk_super_admin(): void
     {
-        $this->assertTrue((function () {
-            $this->actingAs($this->admin());
+        $this->actingAs($this->superAdmin());
+        $this->assertTrue(OwnerSalaryResource::canAccess());
 
-            return OwnerSalaryResource::canAccess();
-        })());
+        $this->flushSession();
+        $this->actingAs($this->admin());
+        $this->assertFalse(OwnerSalaryResource::canAccess());
     }
 }
