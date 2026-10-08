@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Employees\EmployeeResource;
 use App\Filament\Admin\Resources\Expenses\ExpenseResource;
 use App\Filament\Admin\Resources\PayComponents\PayComponentResource;
 use App\Filament\Admin\Resources\Payslips\PayslipResource;
+use App\Filament\Admin\Resources\Zeytin\BankTransactions\BankTransactionResource;
 use App\Filament\Admin\Resources\Zeytin\OwnerSalaries\OwnerSalaryResource;
 use App\Filament\Admin\Resources\Products\ProductResource;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
@@ -61,6 +62,8 @@ class ExcelImportTest extends TestCase
         PayslipResource::class,
         // Dua pemilik, satu baris per bulan: diketik langsung, tidak perlu berkas.
         OwnerSalaryResource::class,
+        // Antrean notifikasi bank: diisi dari email, bukan dari berkas.
+        BankTransactionResource::class,
     ];
 
     protected function setUp(): void

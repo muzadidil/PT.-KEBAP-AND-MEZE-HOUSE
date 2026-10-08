@@ -43,6 +43,7 @@ class PanelAccessTest extends TestCase
             // Pembukuan bulanan
             'monthly ledger' => ['filament.admin.pages.monthly-ledger'],
             'cash balance' => ['filament.admin.pages.cash-balance'],
+            'bank transactions' => ['filament.admin.resources.zeytin.bank-transactions.index'],
             'import excel' => ['filament.admin.pages.import-excel'],
             'daily incomes' => ['filament.admin.resources.zeytin.daily-incomes.index'],
             'purchases' => ['filament.admin.resources.zeytin.purchases.index'],
