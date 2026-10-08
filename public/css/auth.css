@@ -361,3 +361,203 @@
         animation: none;
     }
 }
+
+/* ================================================================== */
+/* Tampilan futuristik: latar gelap berpendar, kaca, garis neon.       */
+/* Hanya mengganti kulit; markup, formulir Filament, dan slide tetap.  */
+/* ================================================================== */
+
+.auth {
+    --neo-bg: #04060d;
+    --neo-cyan: #22d3ee;
+    --neo-amber: #fbbf24;
+    --neo-violet: #7c3aed;
+    position: relative;
+    isolation: isolate;
+    background: var(--neo-bg);
+    overflow: hidden;
+}
+
+/* Lambang pudar di belakang seluruh halaman + bola cahaya yang melayang. */
+.auth::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+        radial-gradient(60rem 40rem at 12% 8%, rgba(34, 211, 238, .22), transparent 60%),
+        radial-gradient(52rem 38rem at 92% 92%, rgba(124, 58, 237, .26), transparent 60%),
+        radial-gradient(34rem 24rem at 70% 18%, rgba(251, 191, 36, .14), transparent 60%),
+        linear-gradient(rgba(4, 6, 13, .86), rgba(4, 6, 13, .92)),
+        url('../img/work-bg.jpg') center / cover no-repeat;
+    animation: neo-drift 18s ease-in-out infinite alternate;
+}
+
+/* Garis kisi tipis seperti layar kontrol. */
+.auth::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(148, 163, 184, .07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, .07) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+}
+
+@keyframes neo-drift {
+    from { transform: scale(1) translate3d(0, 0, 0); }
+    to   { transform: scale(1.06) translate3d(-1.2%, 1.2%, 0); }
+}
+
+/* ---------- panel kiri ---------- */
+
+.auth__visual {
+    background: transparent;
+    border-right: 1px solid rgba(34, 211, 238, .25);
+    box-shadow: 1px 0 28px -6px rgba(34, 211, 238, .45);
+}
+
+.auth__slide::after {
+    background:
+        linear-gradient(180deg, rgba(4, 6, 13, .35) 0%, rgba(4, 6, 13, .55) 45%, rgba(4, 6, 13, .92) 100%),
+        linear-gradient(120deg, rgba(34, 211, 238, .16), rgba(124, 58, 237, .18));
+    mix-blend-mode: normal;
+}
+
+.auth__slide-body h2 {
+    background: linear-gradient(100deg, #fff 30%, #a5f3fc 70%, #fde68a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 0 18px rgba(34, 211, 238, .35));
+}
+
+.auth__eyebrow {
+    border-color: rgba(34, 211, 238, .45);
+    background: rgba(34, 211, 238, .1);
+    color: #cffafe;
+    box-shadow: 0 0 18px -4px rgba(34, 211, 238, .55);
+}
+
+.auth__eyebrow i {
+    background: var(--neo-cyan);
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, .25), 0 0 10px var(--neo-cyan);
+    animation: neo-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes neo-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+}
+
+.auth__brand-text strong {
+    text-shadow: 0 0 18px rgba(34, 211, 238, .45);
+}
+
+.auth__logo {
+    box-shadow: 0 0 22px -2px rgba(34, 211, 238, .55);
+}
+
+.auth__progress span.is-running {
+    background: linear-gradient(90deg, var(--neo-cyan), var(--neo-amber));
+    box-shadow: 0 0 10px rgba(34, 211, 238, .8);
+}
+
+/* ---------- panel kanan: kartu kaca ---------- */
+
+.auth__panel {
+    background: transparent;
+}
+
+.auth__card {
+    position: relative;
+    max-width: 25rem;
+    padding: 2.25rem 2rem 2rem;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, .965);
+    color-scheme: light;
+    box-shadow:
+        0 0 0 1px rgba(34, 211, 238, .18),
+        0 24px 80px -12px rgba(0, 0, 0, .65),
+        0 0 70px -10px rgba(34, 211, 238, .35),
+        0 0 90px -20px rgba(124, 58, 237, .4);
+    animation: neo-rise .8s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Garis cahaya di sisi atas kartu. */
+.auth__card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--neo-cyan), var(--neo-amber), transparent);
+    box-shadow: 0 0 16px 1px rgba(34, 211, 238, .8);
+}
+
+@keyframes neo-rise {
+    from { opacity: 0; transform: translateY(1.25rem) scale(.985); }
+    to   { opacity: 1; transform: none; }
+}
+
+.auth__panel .fi-simple-header-heading {
+    font-weight: 800;
+    letter-spacing: -.02em;
+}
+
+/* Isian yang sedang dipilih berpendar. */
+.auth__panel .fi-input-wrp {
+    transition: box-shadow .2s ease, border-color .2s ease;
+}
+
+.auth__panel .fi-input-wrp:focus-within {
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, .28), 0 0 18px -2px rgba(34, 211, 238, .55);
+}
+
+/* Tombol masuk: gradasi dengan cahaya. */
+.auth__panel button[type="submit"] {
+    border: 0;
+    background: linear-gradient(100deg, #fbbf24 0%, #f59e0b 55%, #fb923c 100%);
+    color: #431407;
+    font-weight: 800;
+    letter-spacing: .02em;
+    box-shadow: 0 10px 28px -8px rgba(245, 158, 11, .75), 0 0 0 1px rgba(255, 255, 255, .25) inset;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.auth__panel button[type="submit"]:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 14px 34px -8px rgba(245, 158, 11, .9), 0 0 24px rgba(251, 191, 36, .45);
+}
+
+.auth__panel button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 1024px) {
+    .auth__card {
+        max-width: 26rem;
+        margin-inline: auto;
+    }
+
+    .auth__brand--mobile {
+        color: #0f172a;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth::before,
+    .auth__card,
+    .auth__eyebrow i {
+        animation: none;
+    }
+}
