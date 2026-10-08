@@ -48,12 +48,25 @@ echo "    tersimpan: $FILE"
 ls -1t "$BACKUP_DIR"/db-*.sql 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
 
 echo "==> 2/5 Ambil kode terbaru ($BRANCH)"
+OLD="$(git rev-parse HEAD 2>/dev/null || echo none)"
 git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
-echo "==> 3/5 Pasang paket"
-composer install --no-dev --optimize-autoloader --no-interaction
+echo "==> 3/5 Paket (Composer)"
+# Hanya perlu kalau daftar paket berubah. Banyak hosting tidak punya
+# perintah composer; folder vendor yang sudah ada tetap dipakai.
+if [ "$OLD" != "none" ] && git diff --quiet "$OLD" HEAD -- composer.lock composer.json; then
+    echo "    daftar paket tidak berubah, dilewati"
+elif command -v composer >/dev/null 2>&1; then
+    composer install --no-dev --optimize-autoloader --no-interaction
+elif [ -f composer.phar ]; then
+    php composer.phar install --no-dev --optimize-autoloader --no-interaction
+else
+    echo "    PERINGATAN: daftar paket berubah, tapi composer tidak ada di hosting."
+    echo "    Jalankan composer install di laptop, lalu unggah folder vendor."
+    echo "    Deploy dilanjutkan; periksa situs setelah selesai."
+fi
 
 echo "==> 4/5 Migrasi database"
 php artisan migrate --force
