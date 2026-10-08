@@ -255,4 +255,21 @@ class BankMailboxTest extends TestCase
         $this->assertContains('REF222', $references);
         $this->assertSame('XENIA SUPPLY', collect($result['parsed'])->firstWhere('reference', 'REF222')['beneficiary']);
     }
+
+    public function test_periode_dari_sampai_masuk_ke_pencarian_dan_sampai_ikut(): void
+    {
+        config(['bank.imap.user' => 'kotak@contoh.id', 'bank.imap.password' => 'sandi-aplikasi']);
+        [$client, $transport] = $this->fakeServer([7 => $this->raw()]);
+
+        BankMailbox::fetch($client, null, \Illuminate\Support\Carbon::parse('2026-09-01'), \Illuminate\Support\Carbon::parse('2026-09-30'));
+
+        // "Sampai 30 Sep" ikut: BEFORE (tidak ikut) jatuh pada 1 Okt.
+        $this->assertStringContainsString('SINCE 01-Sep-2026 BEFORE 01-Oct-2026', $transport->sent);
+
+        [$open, $transportOpen] = $this->fakeServer([7 => $this->raw()]);
+        BankMailbox::fetch($open, null, \Illuminate\Support\Carbon::parse('2026-09-01'));
+
+        $this->assertStringContainsString('SINCE 01-Sep-2026', $transportOpen->sent);
+        $this->assertStringNotContainsString('BEFORE', $transportOpen->sent);
+    }
 }

@@ -33,6 +33,12 @@ return [
     ],
 
     'fetch' => [
+        'heading' => 'Fetch bank emails',
+        'description' => 'Choose the period (both dates included). Emails already queued are never added twice.',
+        'submit' => 'Fetch',
+        'from' => 'From date',
+        'to' => 'To date',
+        'too_long' => 'At most 3 months at a time here. For a longer period, run php artisan bank:fetch-email --from=YYYY-MM-DD --to=YYYY-MM-DD on the server.',
         'action' => 'Fetch from email',
         'done' => 'Email checked',
         'failed' => 'Could not read the mailbox',

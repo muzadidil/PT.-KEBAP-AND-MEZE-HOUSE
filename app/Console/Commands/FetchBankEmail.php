@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /** Ambil notifikasi bank dari email ke antrean Transaksi Bank. Dijadwalkan lewat cron. */
 class FetchBankEmail extends Command
 {
-    protected $signature = 'bank:fetch-email {--debug : tampilkan bentuk tiap email (angka disamarkan)}';
+    protected $signature = 'bank:fetch-email {--debug : tampilkan bentuk tiap email (angka disamarkan)} {--from= : dari tanggal (YYYY-MM-DD)} {--to= : sampai tanggal (YYYY-MM-DD)}';
 
     protected $description = 'Baca email notifikasi bank dan masukkan ke antrean Transaksi Bank';
 
@@ -24,7 +24,16 @@ class FetchBankEmail extends Command
                 $this->line('    judul isian: '.implode(' | ', \App\Support\Bank\BniNotification::labels($message->text)));
             } : null;
 
-            $result = BankMailbox::fetch(null, $inspect);
+            $from = $this->option('from') ? \Illuminate\Support\Carbon::parse($this->option('from')) : null;
+            $to = $this->option('to') ? \Illuminate\Support\Carbon::parse($this->option('to')) : null;
+
+            if ($from && $to && $to->lt($from)) {
+                $this->error('Tanggal "sampai" tidak boleh sebelum "dari".');
+
+                return self::FAILURE;
+            }
+
+            $result = BankMailbox::fetch(null, $inspect, $from, $to);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 

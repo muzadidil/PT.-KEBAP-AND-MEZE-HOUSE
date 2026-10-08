@@ -4,6 +4,7 @@ namespace App\Support\Bank;
 
 use App\Support\Bank\Imap\ImapClient;
 use App\Support\Bank\Imap\MailMessage;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
@@ -20,7 +21,7 @@ class BankMailbox
      * @param  (callable(int, MailMessage, string): void)|null  $inspect  dipanggil untuk tiap email: nomor, isi, hasil ('rejected', 'not_transaction', 'read')
      * @return array{checked: int, added: int, duplicate: int, rejected: int, skipped: int, other_format: int, problems: array<int, string>}
      */
-    public static function fetch(?ImapClient $client = null, ?callable $inspect = null): array
+    public static function fetch(?ImapClient $client = null, ?callable $inspect = null, ?Carbon $from = null, ?Carbon $to = null): array
     {
         $config = config('bank');
 
@@ -39,8 +40,17 @@ class BankMailbox
 
             $client->selectInbox();
 
-            $since = now()->subDays(max(1, $config['lookback_days']))->format('d-M-Y');
-            $uids = $client->search('SINCE '.$since.' FROM "'.$config['sender_domain'].'"');
+            // Periode: dari tanggal ... sampai tanggal ... (keduanya ikut). Tanpa
+            // pilihan, dipakai beberapa hari terakhir. IMAP BEFORE tidak ikut
+            // tanggalnya, jadi "sampai" ditambah satu hari.
+            $from ??= now()->subDays(max(1, $config['lookback_days']));
+            $criteria = 'SINCE '.$from->copy()->startOfDay()->format('d-M-Y');
+
+            if ($to) {
+                $criteria .= ' BEFORE '.$to->copy()->startOfDay()->addDay()->format('d-M-Y');
+            }
+
+            $uids = $client->search($criteria.' FROM "'.$config['sender_domain'].'"');
 
             foreach ($uids as $uid) {
                 $result['checked']++;

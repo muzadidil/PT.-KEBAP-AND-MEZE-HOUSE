@@ -6,10 +6,12 @@ use App\Filament\Admin\Resources\Zeytin\BankTransactions\BankTransactionResource
 use App\Support\Bank\BankMailbox;
 use App\Support\Bank\BankQueue;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 
 class ManageBankTransactions extends ManageRecords
 {
@@ -23,9 +25,34 @@ class ManageBankTransactions extends ManageRecords
                 ->icon(Heroicon::OutlinedEnvelopeOpen)
                 ->color('gray')
                 ->visible(fn () => filled(config('bank.imap.user')) && filled(config('bank.imap.password')))
-                ->action(function () {
+                ->modalHeading(__('bank.fetch.heading'))
+                ->modalDescription(__('bank.fetch.description'))
+                ->modalSubmitActionLabel(__('bank.fetch.submit'))
+                ->fillForm(fn () => ['from' => now()->subDays(7)->toDateString(), 'to' => now()->toDateString()])
+                ->schema([
+                    DatePicker::make('from')
+                        ->label(__('bank.fetch.from'))
+                        ->native(false)
+                        ->displayFormat('d M Y')
+                        ->maxDate(now())
+                        ->required(),
+                    DatePicker::make('to')
+                        ->label(__('bank.fetch.to'))
+                        ->native(false)
+                        ->displayFormat('d M Y')
+                        ->maxDate(now())
+                        ->afterOrEqual('from')
+                        // Dari web, rentang panjang bisa melewati batas waktu server.
+                        ->rule(fn ($get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            if ($get('from') && Carbon::parse($value)->diffInDays(Carbon::parse($get('from'))) > 92) {
+                                $fail(__('bank.fetch.too_long'));
+                            }
+                        })
+                        ->required(),
+                ])
+                ->action(function (array $data) {
                     try {
-                        $result = BankMailbox::fetch();
+                        $result = BankMailbox::fetch(null, null, Carbon::parse($data['from']), Carbon::parse($data['to']));
                     } catch (\Throwable $e) {
                         report($e);
 

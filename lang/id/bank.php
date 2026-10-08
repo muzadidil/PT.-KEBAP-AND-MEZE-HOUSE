@@ -33,6 +33,12 @@ return [
     ],
 
     'fetch' => [
+        'heading' => 'Ambil email bank',
+        'description' => 'Pilih periodenya (kedua tanggal ikut). Email yang sudah masuk antrean tidak pernah masuk dua kali.',
+        'submit' => 'Ambil',
+        'from' => 'Dari tanggal',
+        'to' => 'Sampai tanggal',
+        'too_long' => 'Paling lama 3 bulan sekali di sini. Untuk periode lebih panjang, jalankan php artisan bank:fetch-email --from=YYYY-MM-DD --to=YYYY-MM-DD di server.',
         'action' => 'Ambil dari email',
         'done' => 'Email dicek',
         'failed' => 'Kotak email tidak bisa dibaca',
