@@ -35,9 +35,30 @@ class BniNotification
     /** Apakah teks ini memuat nomor referensi BNI, yaitu tanda notifikasi transaksi. */
     public static function looksLikeTransaction(string $text): bool
     {
-        $text = html_entity_decode(strip_tags($text));
+        return (bool) preg_match('/(No\. Referensi BNI|BNI Reference Number)\s*:/i', static::flat($text));
+    }
 
-        return (bool) preg_match('/(No\. Referensi BNI|BNI Reference Number)\s*:/i', $text);
+    /** Email transaksi dengan isian lain (tanpa nomor referensi BNI): belum dibaca. */
+    public static function looksLikeOtherFormat(string $text): bool
+    {
+        $flat = static::flat($text);
+
+        return ! static::looksLikeTransaction($text)
+            && preg_match('/(Tanggal\/Jam|Date\/Time)\s*:/i', $flat)
+            && preg_match('/(Jenis Transaksi|Transaction Type)\s*:/i', $flat);
+    }
+
+    /**
+     * Judul isian yang ada di teks, berurutan, untuk diagnosa: bentuk email
+     * terlihat tanpa membuka isiannya (nama dan angka).
+     *
+     * @return array<int, string>
+     */
+    public static function labels(string $text): array
+    {
+        preg_match_all('/(?<![\p{L}])([\p{Lu}][\p{L}\.\/ ]{2,40}?)\s*:(?=\s)/u', static::flat($text), $m);
+
+        return array_values(array_unique(array_map('trim', $m[1])));
     }
 
     /**
@@ -46,21 +67,15 @@ class BniNotification
      */
     public static function parse(string $text, array $companyNames = ['KEBAP AND MEZE HOUSE', 'KEBAP & MEZE HOUSE']): array
     {
-        $text = html_entity_decode(strip_tags(preg_replace('/<br\s*\/?>|<\/(p|div|tr)>/i', "\n", $text)));
-        $text = str_replace(["\r\n", "\r", "\xC2\xA0"], ["\n", "\n", ' '], $text);
-
-        $starts = [];
-        preg_match_all('/^[ \t]*(?:No\. Referensi BNI|BNI Reference Number)[ \t]*:/mi', $text, $matches, PREG_OFFSET_CAPTURE);
-
-        foreach ($matches[0] as [, $offset]) {
-            $starts[] = $offset;
-        }
-
+        $flat = static::flat($text);
         $parsed = [];
         $problems = [];
 
+        preg_match_all('/(?<![\p{L}])(?:No\. Referensi BNI|BNI Reference Number)\s*:/iu', $flat, $matches, PREG_OFFSET_CAPTURE);
+        $starts = array_map(fn ($match) => $match[1], $matches[0]);
+
         foreach ($starts as $i => $start) {
-            $block = substr($text, $start, ($starts[$i + 1] ?? strlen($text)) - $start);
+            $block = substr($flat, $start, ($starts[$i + 1] ?? strlen($flat)) - $start);
             $row = static::block($block, $companyNames);
 
             if (is_string($row)) {
@@ -80,14 +95,70 @@ class BniNotification
         return ['parsed' => array_values($parsed), 'problems' => $problems];
     }
 
+    /**
+     * Teks jadi satu baris: HTML dibuang, spasi dirapikan. Pembacaan memakai
+     * judul isian, bukan baris, karena email HTML sering tanpa pemisah baris.
+     */
+    protected static function flat(string $text): string
+    {
+        $text = html_entity_decode(strip_tags(preg_replace('/<br\s*\/?>|<\/(p|div|tr|td|li)>/i', ' ', $text)));
+
+        return trim(preg_replace('/\s+/u', ' ', str_replace("\xC2\xA0", ' ', $text)));
+    }
+
+    /**
+     * Isian satu blok: tiap judul dicari di mana pun ia berada, dan nilainya
+     * adalah teks sampai judul berikutnya.
+     *
+     * @return array<string, string>
+     */
+    protected static function fields(string $block): array
+    {
+        $found = [];
+
+        foreach (static::LABELS as $field => $names) {
+            preg_match_all('/(?<![\p{L}])(?:'.implode('|', $names).')\s*:/iu', $block, $m, PREG_OFFSET_CAPTURE);
+
+            foreach ($m[0] as [$label, $offset]) {
+                $found[] = ['field' => $field, 'start' => $offset, 'end' => $offset + strlen($label)];
+            }
+        }
+
+        // Yang mulai lebih awal menang, supaya "Penerima" di dalam "Bank Penerima" tidak dihitung.
+        usort($found, fn ($a, $b) => [$a['start'], $b['end']] <=> [$b['start'], $a['end']]);
+
+        $kept = [];
+
+        foreach ($found as $item) {
+            $last = end($kept);
+
+            if ($last && $item['start'] < $last['end']) {
+                continue;
+            }
+
+            $kept[] = $item;
+        }
+
+        $values = [];
+
+        foreach ($kept as $i => $item) {
+            $until = $kept[$i + 1]['start'] ?? strlen($block);
+            $values[$item['field']] ??= trim(substr($block, $item['end'], $until - $item['end']));
+        }
+
+        // Isian terakhir biasanya disusul kalimat penutup; statusnya satu kata.
+        if (isset($values['status'])) {
+            $values['status'] = preg_split('/\s+/', $values['status'])[0];
+        }
+
+        return $values;
+    }
+
     /** @return array<string, mixed>|string baris terbaca, atau alasan gagal */
     protected static function block(string $block, array $companyNames): array|string
     {
-        $value = function (string $field) use ($block): ?string {
-            $labels = implode('|', static::LABELS[$field]);
-
-            return preg_match('/^[ \t]*(?:'.$labels.')[ \t]*:[ \t]*(.+?)[ \t]*$/mi', $block, $m) ? trim($m[1]) : null;
-        };
+        $fields = static::fields($block);
+        $value = fn (string $field): ?string => ($fields[$field] ?? '') !== '' ? $fields[$field] : null;
 
         $reference = $value('reference');
 

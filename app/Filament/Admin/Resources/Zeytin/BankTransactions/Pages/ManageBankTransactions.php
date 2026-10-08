@@ -36,6 +36,7 @@ class ManageBankTransactions extends ManageRecords
 
                     $lines = array_filter([
                         __('bank.fetch.summary', ['checked' => $result['checked'], 'added' => $result['added'], 'duplicate' => $result['duplicate']]),
+                        $result['other_format'] ? __('bank.fetch.other_format', ['count' => $result['other_format']]) : null,
                         $result['skipped'] ? __('bank.fetch.skipped', ['count' => $result['skipped']]) : null,
                         $result['rejected'] ? __('bank.fetch.rejected', ['count' => $result['rejected']]) : null,
                         ...$result['problems'],
@@ -45,7 +46,7 @@ class ManageBankTransactions extends ManageRecords
                         ->title(__('bank.fetch.done'))
                         ->body(implode("\n", $lines))
                         ->status($result['added'] > 0 ? 'success' : 'warning')
-                        ->persistent($result['rejected'] > 0 || $result['problems'] !== [])
+                        ->persistent($result['rejected'] > 0 || $result['other_format'] > 0 || $result['problems'] !== [])
                         ->send();
                 }),
 

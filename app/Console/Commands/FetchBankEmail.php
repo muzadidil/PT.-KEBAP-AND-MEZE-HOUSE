@@ -21,6 +21,7 @@ class FetchBankEmail extends Command
                 $shape = mb_substr(preg_replace('/\d/', '#', $text), 0, 160);
 
                 $this->line(sprintf('[%s] %s | %s | %d huruf | %s', $outcome, $message->header('date'), $message->header('subject'), mb_strlen($text), $shape));
+                $this->line('    judul isian: '.implode(' | ', \App\Support\Bank\BniNotification::labels($message->text)));
             } : null;
 
             $result = BankMailbox::fetch(null, $inspect);
@@ -30,7 +31,7 @@ class FetchBankEmail extends Command
             return self::FAILURE;
         }
 
-        $this->info("Dicek {$result['checked']} email: {$result['added']} baru, {$result['duplicate']} sudah ada, {$result['skipped']} bukan notifikasi transaksi, {$result['rejected']} ditolak (gagal verifikasi pengirim).");
+        $this->info("Dicek {$result['checked']} email: {$result['added']} baru, {$result['duplicate']} sudah ada, {$result['skipped']} bukan notifikasi transaksi, {$result['other_format']} transaksi berformat lain (belum dibaca), {$result['rejected']} ditolak (gagal verifikasi pengirim).");
 
         foreach ($result['problems'] as $problem) {
             $this->warn($problem);

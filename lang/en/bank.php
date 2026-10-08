@@ -37,6 +37,7 @@ return [
         'done' => 'Email checked',
         'failed' => 'Could not read the mailbox',
         'summary' => ':checked emails checked: :added new, :duplicate already in the queue',
+        'other_format' => ':count transaction emails in another format were not read yet (please tell the developer)',
         'skipped' => ':count other emails from the bank skipped (not transaction notifications)',
         'rejected' => ':count ignored: not from the bank, or failed the sender check',
     ],

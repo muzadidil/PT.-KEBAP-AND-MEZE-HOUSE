@@ -18,7 +18,7 @@ class BankMailbox
 {
     /**
      * @param  (callable(int, MailMessage, string): void)|null  $inspect  dipanggil untuk tiap email: nomor, isi, hasil ('rejected', 'not_transaction', 'read')
-     * @return array{checked: int, added: int, duplicate: int, rejected: int, skipped: int, problems: array<int, string>}
+     * @return array{checked: int, added: int, duplicate: int, rejected: int, skipped: int, other_format: int, problems: array<int, string>}
      */
     public static function fetch(?ImapClient $client = null, ?callable $inspect = null): array
     {
@@ -30,7 +30,7 @@ class BankMailbox
 
         $client ??= ImapClient::connect($config['imap']['host'], $config['imap']['port'], $config['imap']['timeout']);
 
-        $result = ['checked' => 0, 'added' => 0, 'duplicate' => 0, 'rejected' => 0, 'skipped' => 0, 'problems' => []];
+        $result = ['checked' => 0, 'added' => 0, 'duplicate' => 0, 'rejected' => 0, 'skipped' => 0, 'other_format' => 0, 'problems' => []];
 
         try {
             if ($config['imap']['user']) {
@@ -49,6 +49,15 @@ class BankMailbox
                 if (! $message->isAuthenticFrom($config['sender_domain'], $config['require_authentication'])) {
                     $result['rejected']++;
                     $inspect && $inspect($uid, $message, 'rejected');
+
+                    continue;
+                }
+
+                // Email transaksi dengan isian lain: belum bisa dibaca, dihitung sendiri
+                // supaya tidak hilang diam-diam.
+                if (BniNotification::looksLikeOtherFormat($message->text)) {
+                    $result['other_format']++;
+                    $inspect && $inspect($uid, $message, 'other_format');
 
                     continue;
                 }

@@ -181,4 +181,38 @@ class BankMailboxTest extends TestCase
         $this->assertSame(1_010_000, $parsed['parsed'][0]['amount']);
         $this->assertSame('SERDAR BAGLAYAN', $parsed['parsed'][0]['beneficiary']);
     }
+
+    public function test_email_satu_baris_tanpa_pemisah_tetap_terbaca(): void
+    {
+        $flat = 'Berikut kami informasikan transaksi yang telah dilakukan dengan detail sebagai berikut: '
+            .'No. Referensi BNI : 20261003175133601966 Tanggal/Jam : 05-10-2026 12:21:21 Jenis Transaksi : BI-FAST Transfer '
+            .'Nominal : IDR 1,010,000.00 Pengirim : *******882 PT KEBAP AND MEZE HOUSE Penerima : *******788 - SERDAR BAGLAYAN '
+            .'Bank Penerima : CENAIDJA - BANK CENTRAL ASIA Keterangan Pembayaran : Yogurt & Peynir 25 sep Status : Berhasil Terima kasih. PT Bank Negara Indonesia';
+
+        $parsed = \App\Support\Bank\BniNotification::parse($flat);
+
+        $this->assertSame([], $parsed['problems']);
+        $this->assertCount(1, $parsed['parsed']);
+        $row = $parsed['parsed'][0];
+        $this->assertSame('SERDAR BAGLAYAN', $row['beneficiary']);
+        $this->assertSame('CENAIDJA - BANK CENTRAL ASIA', $row['beneficiary_bank']);
+        $this->assertSame('Yogurt & Peynir 25 sep', $row['remark']);
+        $this->assertSame('out', $row['direction']);
+        $this->assertSame(1_010_000, $row['amount']);
+    }
+
+    public function test_format_lain_tanpa_nomor_referensi_dihitung_sendiri_dan_judulnya_terlihat(): void
+    {
+        config(['bank.imap.user' => 'kotak@contoh.id', 'bank.imap.password' => 'sandi-aplikasi']);
+
+        $other = "From: BNI <noreply@bni.co.id>\r\nAuthentication-Results: mx; dkim=pass header.i=@bni.co.id\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"
+            ."Berikut kami informasikan transaksi:\r\nTanggal/Jam : 05-10-2026 12:21:21\r\nJenis Transaksi : BI-FAST Transfer Dari\r\nNominal : IDR 5,000.00\r\n";
+        [$client] = $this->fakeServer([4 => $other]);
+
+        $result = BankMailbox::fetch($client);
+
+        $this->assertSame(1, $result['other_format']);
+        $this->assertSame(0, $result['added']);
+        $this->assertContains('Jenis Transaksi', \App\Support\Bank\BniNotification::labels($other));
+    }
 }
