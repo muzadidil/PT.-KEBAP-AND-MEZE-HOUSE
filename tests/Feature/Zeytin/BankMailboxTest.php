@@ -145,4 +145,40 @@ class BankMailboxTest extends TestCase
         $this->expectExceptionMessage('BANK_IMAP_USER');
         BankMailbox::fetch();
     }
+
+    public function test_email_bank_lain_dilewati_bukan_dianggap_masalah(): void
+    {
+        config(['bank.imap.user' => 'kotak@contoh.id', 'bank.imap.password' => 'sandi-aplikasi']);
+
+        $promo = "From: BNI <noreply@bni.co.id>\r\nSubject: Promo\r\nAuthentication-Results: mx; dkim=pass header.i=@bni.co.id\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nDapatkan cashback hari ini.\r\n";
+        [$client] = $this->fakeServer([3 => $promo, 4 => $promo, 5 => $this->raw()]);
+
+        $result = BankMailbox::fetch($client);
+
+        $this->assertSame(3, $result['checked']);
+        $this->assertSame(2, $result['skipped']);
+        $this->assertSame(1, $result['added']);
+        $this->assertSame([], $result['problems']);
+    }
+
+    public function test_notifikasi_berbentuk_tabel_html_terbaca(): void
+    {
+        $html = '<table><tr><td>No. Referensi BNI</td><td>:</td><td>20261003175133601966</td></tr>'
+            .'<tr><td>Tanggal/Jam</td><td>:</td><td>05-10-2026 12:21:21</td></tr>'
+            .'<tr><td>Jenis Transaksi</td><td>:</td><td>BI-FAST Transfer</td></tr>'
+            .'<tr><td>Nominal</td><td>:</td><td>IDR 1,010,000.00</td></tr>'
+            .'<tr><td>Pengirim</td><td>:</td><td>*******882 PT KEBAP AND MEZE HOUSE</td></tr>'
+            .'<tr><td>Penerima</td><td>:</td><td>*******788 - SERDAR BAGLAYAN</td></tr>'
+            .'<tr><td>Keterangan Pembayaran</td><td>:</td><td>Yogurt &amp; Peynir 25 sep</td></tr>'
+            .'<tr><td>Status</td><td>:</td><td>Berhasil</td></tr></table>';
+
+        $raw = "From: BNI <noreply@bni.co.id>\r\nAuthentication-Results: mx; dkim=pass header.i=@bni.co.id\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n{$html}\r\n";
+        $message = MailMessage::parse($raw);
+
+        $parsed = \App\Support\Bank\BniNotification::parse($message->text);
+
+        $this->assertSame([], $parsed['problems']);
+        $this->assertSame(1_010_000, $parsed['parsed'][0]['amount']);
+        $this->assertSame('SERDAR BAGLAYAN', $parsed['parsed'][0]['beneficiary']);
+    }
 }

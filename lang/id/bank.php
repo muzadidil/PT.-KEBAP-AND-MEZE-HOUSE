@@ -37,6 +37,7 @@ return [
         'done' => 'Email dicek',
         'failed' => 'Kotak email tidak bisa dibaca',
         'summary' => ':checked email dicek: :added baru, :duplicate sudah ada di antrean',
+        'skipped' => ':count email bank lain dilewati (bukan notifikasi transaksi)',
         'rejected' => ':count diabaikan: bukan dari bank, atau gagal pemeriksaan pengirim',
     ],
 

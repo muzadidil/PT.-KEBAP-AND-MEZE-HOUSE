@@ -17,9 +17,10 @@ use RuntimeException;
 class BankMailbox
 {
     /**
-     * @return array{checked: int, added: int, duplicate: int, rejected: int, problems: array<int, string>}
+     * @param  (callable(int, MailMessage, string): void)|null  $inspect  dipanggil untuk tiap email: nomor, isi, hasil ('rejected', 'not_transaction', 'read')
+     * @return array{checked: int, added: int, duplicate: int, rejected: int, skipped: int, problems: array<int, string>}
      */
-    public static function fetch(?ImapClient $client = null): array
+    public static function fetch(?ImapClient $client = null, ?callable $inspect = null): array
     {
         $config = config('bank');
 
@@ -29,7 +30,7 @@ class BankMailbox
 
         $client ??= ImapClient::connect($config['imap']['host'], $config['imap']['port'], $config['imap']['timeout']);
 
-        $result = ['checked' => 0, 'added' => 0, 'duplicate' => 0, 'rejected' => 0, 'problems' => []];
+        $result = ['checked' => 0, 'added' => 0, 'duplicate' => 0, 'rejected' => 0, 'skipped' => 0, 'problems' => []];
 
         try {
             if ($config['imap']['user']) {
@@ -47,9 +48,21 @@ class BankMailbox
 
                 if (! $message->isAuthenticFrom($config['sender_domain'], $config['require_authentication'])) {
                     $result['rejected']++;
+                    $inspect && $inspect($uid, $message, 'rejected');
 
                     continue;
                 }
+
+                // Email BNI lain (promo, e-statement, dan sebagainya) bukan
+                // notifikasi transaksi: dilewati, bukan dianggap masalah.
+                if (! BniNotification::looksLikeTransaction($message->text)) {
+                    $result['skipped']++;
+                    $inspect && $inspect($uid, $message, 'not_transaction');
+
+                    continue;
+                }
+
+                $inspect && $inspect($uid, $message, 'read');
 
                 $queued = BankQueue::addFromText($message->text, 'imap');
                 $result['added'] += $queued['added'];
@@ -59,6 +72,9 @@ class BankMailbox
         } finally {
             $client->logout();
         }
+
+        // Masalah yang sama tidak ditulis berulang.
+        $result['problems'] = array_values(array_unique($result['problems']));
 
         return $result;
     }

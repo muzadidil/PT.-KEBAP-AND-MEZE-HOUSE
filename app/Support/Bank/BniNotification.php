@@ -32,6 +32,14 @@ class BniNotification
         'status' => ['Status'],
     ];
 
+    /** Apakah teks ini memuat nomor referensi BNI, yaitu tanda notifikasi transaksi. */
+    public static function looksLikeTransaction(string $text): bool
+    {
+        $text = html_entity_decode(strip_tags($text));
+
+        return (bool) preg_match('/(No\. Referensi BNI|BNI Reference Number)\s*:/i', $text);
+    }
+
     /**
      * @param  array<int, string>  $companyNames  nama perusahaan (huruf besar), untuk menentukan arah
      * @return array{parsed: array<int, array<string, mixed>>, problems: array<int, string>}

@@ -36,6 +36,7 @@ class ManageBankTransactions extends ManageRecords
 
                     $lines = array_filter([
                         __('bank.fetch.summary', ['checked' => $result['checked'], 'added' => $result['added'], 'duplicate' => $result['duplicate']]),
+                        $result['skipped'] ? __('bank.fetch.skipped', ['count' => $result['skipped']]) : null,
                         $result['rejected'] ? __('bank.fetch.rejected', ['count' => $result['rejected']]) : null,
                         ...$result['problems'],
                     ]);
