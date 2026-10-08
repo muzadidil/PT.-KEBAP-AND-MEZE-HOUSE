@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Employees\EmployeeResource;
 use App\Filament\Admin\Resources\Expenses\ExpenseResource;
 use App\Filament\Admin\Resources\PayComponents\PayComponentResource;
 use App\Filament\Admin\Resources\Payslips\PayslipResource;
+use App\Filament\Admin\Resources\Zeytin\BalanceAdjustments\BalanceAdjustmentResource;
 use App\Filament\Admin\Resources\Zeytin\BankTransactions\BankTransactionResource;
 use App\Filament\Admin\Resources\Zeytin\OwnerSalaries\OwnerSalaryResource;
 use App\Filament\Admin\Resources\Products\ProductResource;
@@ -64,6 +65,8 @@ class ExcelImportTest extends TestCase
         OwnerSalaryResource::class,
         // Antrean notifikasi bank: diisi dari email, bukan dari berkas.
         BankTransactionResource::class,
+        // Koreksi saldo: beberapa baris dengan alasan, diketik langsung.
+        BalanceAdjustmentResource::class,
     ];
 
     protected function setUp(): void

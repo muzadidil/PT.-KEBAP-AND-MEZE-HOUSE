@@ -48,6 +48,7 @@
                     <th class="num">{{ __('cash.col.opening') }}</th>
                     <th class="num">{{ __('cash.col.cash_in') }}</th>
                     <th class="num">{{ __('cash.col.cash_out') }}</th>
+                    <th class="num">{{ __('balance_adjustment.col') }}</th>
                     <th class="num">{{ __('cash.col.balance') }}</th>
                 </tr>
             </thead>
@@ -60,9 +61,10 @@
                             <td class="num">{{ $this->money($row['opening']) }}</td>
                             <td class="num">{{ $this->money($row['cash_in']) }}</td>
                             <td class="num">{{ $this->money($row['cash_out']) }}</td>
+                            <td class="num">{{ $row['adjustment'] === 0 ? '–' : $this->money($row['adjustment']) }}</td>
                             <td class="num {{ $row['balance'] < 0 ? 'report__negative' : '' }}">{{ $this->money($row['balance']) }}</td>
                         @else
-                            <td class="num" colspan="4">{{ __('cash.before_opening') }}</td>
+                            <td class="num" colspan="5">{{ __('cash.before_opening') }}</td>
                         @endif
                     </tr>
                 @endforeach
@@ -74,6 +76,7 @@
                     <td class="num">{{ $this->money($report['start_balance']) }}</td>
                     <td class="num">{{ $this->money($report['cash_in']) }}</td>
                     <td class="num">{{ $this->money($report['cash_out']) }}</td>
+                    <td class="num">{{ $this->money($report['adjustment']) }}</td>
                     <td class="num">{{ $this->money($report['end_balance']) }}</td>
                 </tr>
             </tfoot>

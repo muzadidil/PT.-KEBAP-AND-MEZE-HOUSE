@@ -3,6 +3,7 @@
 namespace App\Support\Zeytin;
 
 use App\Enums\PaymentMethod;
+use App\Models\BalanceAdjustment;
 use App\Models\DailyIncome;
 use App\Models\Expense;
 use App\Models\Purchase;
@@ -105,16 +106,20 @@ class CashBalance
                 ->sum('total')
                 + array_sum(static::expensesByDate($start, $from->copy()->subDay()));
 
-            $running = $opening['amount'] + $in - $out;
+            $adjusted = array_sum(BalanceAdjustment::byDate(BalanceAdjustment::CASH, $start, $from->copy()->subDay()));
+
+            $running = $opening['amount'] + $in - $out + $adjusted;
         }
 
         $startBalance = $running;
         $totalIn = 0;
         $totalOut = 0;
+        $totalAdjustment = 0;
 
         $expenses = static::expensesByDate($from, $to);
+        $adjustments = BalanceAdjustment::byDate(BalanceAdjustment::CASH, $from, $to);
 
-        $rows = DailyLedger::daily($from, $to)->map(function (array $day) use (&$running, &$totalIn, &$totalOut, $start, $opening, $expenses) {
+        $rows = DailyLedger::daily($from, $to)->map(function (array $day) use (&$running, &$totalIn, &$totalOut, &$totalAdjustment, $start, $opening, $expenses, $adjustments) {
             $counted = ! $day['date']->lt($start);
             $in = $counted ? static::cashIn($day) : 0;
             $out = $counted ? (int) $day['expense'] + ($expenses[$day['date']->toDateString()] ?? 0) : 0;
@@ -125,9 +130,12 @@ class CashBalance
                 $before = $running;
             }
 
-            $running += $in - $out;
+            $adjustment = $counted ? ($adjustments[$day['date']->toDateString()] ?? 0) : 0;
+
+            $running += $in - $out + $adjustment;
             $totalIn += $in;
             $totalOut += $out;
+            $totalAdjustment += $adjustment;
 
             return [
                 'date' => $day['date'],
@@ -135,6 +143,7 @@ class CashBalance
                 'opening' => $before,
                 'cash_in' => $in,
                 'cash_out' => $out,
+                'adjustment' => $adjustment,
                 'balance' => $running,
             ];
         })->values();
@@ -145,6 +154,7 @@ class CashBalance
             'end_balance' => $running,
             'cash_in' => $totalIn,
             'cash_out' => $totalOut,
+            'adjustment' => $totalAdjustment,
             'opening' => $opening,
         ];
     }
