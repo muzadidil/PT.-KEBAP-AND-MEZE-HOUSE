@@ -32,6 +32,14 @@ return [
         'ignore' => 'Ignore',
     ],
 
+    'fetch' => [
+        'action' => 'Fetch from email',
+        'done' => 'Email checked',
+        'failed' => 'Could not read the mailbox',
+        'summary' => ':checked emails checked: :added new, :duplicate already in the queue',
+        'rejected' => ':count ignored: not from the bank, or failed the sender check',
+    ],
+
     'paste' => [
         'action' => 'Paste BNI email',
         'heading' => 'Paste BNI notification email',

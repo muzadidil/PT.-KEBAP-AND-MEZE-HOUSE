@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Zeytin\BankTransactions\Pages;
 
 use App\Filament\Admin\Resources\Zeytin\BankTransactions\BankTransactionResource;
+use App\Support\Bank\BankMailbox;
 use App\Support\Bank\BankQueue;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -17,6 +18,36 @@ class ManageBankTransactions extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('fetch')
+                ->label(__('bank.fetch.action'))
+                ->icon(Heroicon::OutlinedEnvelopeOpen)
+                ->color('gray')
+                ->visible(fn () => filled(config('bank.imap.user')) && filled(config('bank.imap.password')))
+                ->action(function () {
+                    try {
+                        $result = BankMailbox::fetch();
+                    } catch (\Throwable $e) {
+                        report($e);
+
+                        Notification::make()->title(__('bank.fetch.failed'))->body($e->getMessage())->danger()->persistent()->send();
+
+                        return;
+                    }
+
+                    $lines = array_filter([
+                        __('bank.fetch.summary', ['checked' => $result['checked'], 'added' => $result['added'], 'duplicate' => $result['duplicate']]),
+                        $result['rejected'] ? __('bank.fetch.rejected', ['count' => $result['rejected']]) : null,
+                        ...$result['problems'],
+                    ]);
+
+                    Notification::make()
+                        ->title(__('bank.fetch.done'))
+                        ->body(implode("\n", $lines))
+                        ->status($result['added'] > 0 ? 'success' : 'warning')
+                        ->persistent($result['rejected'] > 0 || $result['problems'] !== [])
+                        ->send();
+                }),
+
             Action::make('paste')
                 ->label(__('bank.paste.action'))
                 ->icon(Heroicon::OutlinedClipboardDocument)

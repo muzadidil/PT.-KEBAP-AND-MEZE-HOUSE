@@ -32,6 +32,14 @@ return [
         'ignore' => 'Abaikan',
     ],
 
+    'fetch' => [
+        'action' => 'Ambil dari email',
+        'done' => 'Email dicek',
+        'failed' => 'Kotak email tidak bisa dibaca',
+        'summary' => ':checked email dicek: :added baru, :duplicate sudah ada di antrean',
+        'rejected' => ':count diabaikan: bukan dari bank, atau gagal pemeriksaan pengirim',
+    ],
+
     'paste' => [
         'action' => 'Tempel email BNI',
         'heading' => 'Tempel email notifikasi BNI',
