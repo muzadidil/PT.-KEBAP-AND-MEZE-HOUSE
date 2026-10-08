@@ -206,7 +206,7 @@ class BankMailboxTest extends TestCase
         config(['bank.imap.user' => 'kotak@contoh.id', 'bank.imap.password' => 'sandi-aplikasi']);
 
         $other = "From: BNI <noreply@bni.co.id>\r\nAuthentication-Results: mx; dkim=pass header.i=@bni.co.id\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"
-            ."Berikut kami informasikan transaksi:\r\nTanggal/Jam : 05-10-2026 12:21:21\r\nJenis Transaksi : BI-FAST Transfer Dari\r\nNominal : IDR 5,000.00\r\n";
+            ."Berikut kami informasikan transaksi:\r\nTanggal/Jam : 05-10-2026 12:21:21\r\nJenis Transaksi : Informasi lain\r\n";
         [$client] = $this->fakeServer([4 => $other]);
 
         $result = BankMailbox::fetch($client);
@@ -214,5 +214,45 @@ class BankMailboxTest extends TestCase
         $this->assertSame(1, $result['other_format']);
         $this->assertSame(0, $result['added']);
         $this->assertContains('Jenis Transaksi', \App\Support\Bank\BniNotification::labels($other));
+    }
+
+    /** Bentuk BI-FAST kedua: Dari/Ke Rekening, nomor referensi di tengah, blok Inggris tanpa status. */
+    public function test_format_bi_fast_dari_ke_rekening_terbaca(): void
+    {
+        $text = 'Berikut kami informasikan transaksi yang telah dilakukan dengan detail sebagai berikut: '
+            .'Tanggal/Jam : 05-10-2026 12:21:23 Jenis Transaksi : BI-FAST Transfer Dari Rekening : PT KEBAP AND MEZE HOUSE '
+            .'Ke Rekening : CV. BAYU LESTARI Nominal : IDR 2,500,000.00 Keterangan : Bayar nota 30 sep Jenis Transfer : Langsung '
+            .'No. Referensi : 20261005BIFAST0001 Status : Berhasil NPWP : 001 '
+            .'Date/Time : 05-10-2026 12:21:23 Transaction Type : BI-FAST Transfer From Account : PT KEBAP AND MEZE HOUSE '
+            .'To Account : CV. BAYU LESTARI Amount : IDR 2,500,000.00 Remark : Bayar nota 30 sep Instruction Mode : Immediate Reference No. : 20261005BIFAST0001';
+
+        $result = \App\Support\Bank\BniNotification::parse($text);
+
+        $this->assertSame([], $result['problems']);
+        $this->assertCount(1, $result['parsed']);
+
+        $row = $result['parsed'][0];
+        $this->assertSame('20261005BIFAST0001', $row['reference']);
+        $this->assertSame('2026-10-05 12:21:23', $row['occurred_at']->format('Y-m-d H:i:s'));
+        $this->assertSame(2_500_000, $row['amount']);
+        $this->assertSame('out', $row['direction']);
+        $this->assertSame('PT KEBAP AND MEZE HOUSE', $row['remitter']);
+        $this->assertSame('CV. BAYU LESTARI', $row['beneficiary']);
+        $this->assertSame('Bayar nota 30 sep', $row['remark']);
+        $this->assertSame('BI-FAST Transfer', $row['type']);
+    }
+
+    public function test_dua_bentuk_email_dalam_satu_teks_dan_nama_berawalan_x_utuh(): void
+    {
+        $second = 'Tanggal/Jam : 06-10-2026 08:00:00 Jenis Transaksi : BI-FAST Transfer Dari Rekening : PT KEBAP AND MEZE HOUSE '
+            .'Ke Rekening : XENIA SUPPLY Nominal : IDR 100,000.00 Keterangan : Es Jenis Transfer : Langsung '
+            .'No. Referensi : REF222 Status : Berhasil NPWP : 001';
+
+        $result = \App\Support\Bank\BniNotification::parse($this->notification().' '.$second);
+
+        $references = array_column($result['parsed'], 'reference');
+        $this->assertContains('20261003175133601966', $references);
+        $this->assertContains('REF222', $references);
+        $this->assertSame('XENIA SUPPLY', collect($result['parsed'])->firstWhere('reference', 'REF222')['beneficiary']);
     }
 }

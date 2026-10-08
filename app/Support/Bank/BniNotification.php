@@ -21,31 +21,38 @@ use Illuminate\Support\Carbon;
 class BniNotification
 {
     protected const LABELS = [
-        'reference' => ['No\. Referensi BNI', 'BNI Reference Number'],
+        'reference' => ['No\. Referensi BNI', 'BNI Reference Number', 'No\. Referensi', 'Reference No\.'],
         'datetime' => ['Tanggal\/Jam', 'Date\/Time'],
         'type' => ['Jenis Transaksi', 'Transaction Type'],
         'amount' => ['Nominal', 'Amount'],
-        'remitter' => ['Pengirim', 'Remitter'],
-        'beneficiary' => ['Penerima', 'Beneficiary'],
+        'remitter' => ['Pengirim', 'Dari Rekening', 'Remitter', 'From Account'],
+        'beneficiary' => ['Penerima', 'Ke Rekening', 'Beneficiary', 'To Account'],
         'bank' => ['Bank Penerima', 'Beneficiary Bank'],
-        'remark' => ['Keterangan Pembayaran', 'Transaction Remark'],
+        'remark' => ['Keterangan Pembayaran', 'Keterangan', 'Transaction Remark', 'Remark'],
         'status' => ['Status'],
+        // Hanya sebagai batas: tanpa ini nilai isian di sebelahnya ikut terbawa.
+        'mode' => ['Jenis Transfer', 'Instruction Mode'],
+        'npwp' => ['NPWP'],
     ];
 
-    /** Apakah teks ini memuat nomor referensi BNI, yaitu tanda notifikasi transaksi. */
+    /** Notifikasi transaksi: ada tanggal/jam, jenis transaksi, dan nominal. */
     public static function looksLikeTransaction(string $text): bool
     {
-        return (bool) preg_match('/(No\. Referensi BNI|BNI Reference Number)\s*:/i', static::flat($text));
+        $flat = static::flat($text);
+
+        return (bool) preg_match('/(Tanggal\/Jam|Date\/Time)\s*:/iu', $flat)
+            && preg_match('/(Jenis Transaksi|Transaction Type)\s*:/iu', $flat)
+            && preg_match('/(Nominal|Amount)\s*:/iu', $flat);
     }
 
-    /** Email transaksi dengan isian lain (tanpa nomor referensi BNI): belum dibaca. */
+    /** Email transaksi yang tidak memuat nominal: bentuk lain, belum dibaca. */
     public static function looksLikeOtherFormat(string $text): bool
     {
         $flat = static::flat($text);
 
         return ! static::looksLikeTransaction($text)
-            && preg_match('/(Tanggal\/Jam|Date\/Time)\s*:/i', $flat)
-            && preg_match('/(Jenis Transaksi|Transaction Type)\s*:/i', $flat);
+            && preg_match('/(Tanggal\/Jam|Date\/Time)\s*:/iu', $flat)
+            && preg_match('/(Jenis Transaksi|Transaction Type)\s*:/iu', $flat);
     }
 
     /**
@@ -70,13 +77,27 @@ class BniNotification
         $flat = static::flat($text);
         $parsed = [];
         $problems = [];
+        $withoutStatus = 0;
 
-        preg_match_all('/(?<![\p{L}])(?:No\. Referensi BNI|BNI Reference Number)\s*:/iu', $flat, $matches, PREG_OFFSET_CAPTURE);
+        // Satu transaksi dimulai di judul "Tanggal/Jam" (atau "Date/Time"). Letak
+        // nomor referensi berbeda antar bentuk email: di depan tanggal, atau di
+        // tengah isian. Karena itu segmennya dipotong di tanggal, dan nomor
+        // referensi yang menempel tepat di depannya ikut dibawa.
+        preg_match_all('/(?<![\p{L}])(?:Tanggal\/Jam|Date\/Time)\s*:/iu', $flat, $matches, PREG_OFFSET_CAPTURE);
         $starts = array_map(fn ($match) => $match[1], $matches[0]);
 
         foreach ($starts as $i => $start) {
-            $block = substr($flat, $start, ($starts[$i + 1] ?? strlen($flat)) - $start);
-            $row = static::block($block, $companyNames);
+            $segment = substr($flat, $start, ($starts[$i + 1] ?? strlen($flat)) - $start);
+            $before = substr($flat, max(0, $start - 160), min(160, $start));
+            $lead = preg_match('/(?:No\. Referensi BNI|BNI Reference Number)\s*:\s*(\S+)\s*$/iu', $before, $m) ? $m[1] : null;
+
+            $row = static::block($segment, $companyNames, $lead);
+
+            if ($row === null) {
+                $withoutStatus++;
+
+                continue;
+            }
 
             if (is_string($row)) {
                 $problems[] = $row;
@@ -88,8 +109,14 @@ class BniNotification
             $parsed[$row['reference']] ??= $row;
         }
 
+        // Blok Inggris bentuk BI-FAST tidak memuat status; yang Indonesia sudah.
+        // Hanya bila tak ada satu pun yang terbaca, itu dilaporkan.
+        if ($withoutStatus > 0 && $parsed === [] && $problems === []) {
+            $problems[] = 'Status transaksi tidak terbaca.';
+        }
+
         if ($starts === []) {
-            $problems[] = 'Tidak ada nomor referensi BNI di teks ini.';
+            $problems[] = 'Tidak ada transaksi BNI di teks ini.';
         }
 
         return ['parsed' => array_values($parsed), 'problems' => $problems];
@@ -154,13 +181,17 @@ class BniNotification
         return $values;
     }
 
-    /** @return array<string, mixed>|string baris terbaca, atau alasan gagal */
-    protected static function block(string $block, array $companyNames): array|string
+    /** @return array<string, mixed>|string|null baris terbaca, alasan gagal, atau null bila segmen tanpa status */
+    protected static function block(string $block, array $companyNames, ?string $lead = null): array|string|null
     {
         $fields = static::fields($block);
         $value = fn (string $field): ?string => ($fields[$field] ?? '') !== '' ? $fields[$field] : null;
 
-        $reference = $value('reference');
+        if ($value('status') === null) {
+            return null;
+        }
+
+        $reference = $lead ?: $value('reference');
 
         if (! $reference) {
             return 'Nomor referensi tidak terbaca.';
@@ -222,6 +253,6 @@ class BniNotification
     /** "*******788 - SERDAR BAGLAYAN" dan "*******882 PT KEBAP ..." -> nama saja. */
     protected static function name(string $raw): string
     {
-        return trim(preg_replace('/^[\*xX•\d]+\s*-?\s*/u', '', $raw));
+        return trim(preg_replace('/^[\*•]+\d*\s*-?\s*|^\d+\s*-\s*|^\d{3,}\s+/u', '', $raw));
     }
 }
