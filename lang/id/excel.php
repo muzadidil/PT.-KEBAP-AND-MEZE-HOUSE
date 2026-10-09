@@ -88,6 +88,23 @@ return [
         'skipped_note' => 'Dilewati karena sudah terisi: :dates',
     ],
 
+    'telegram' => [
+        'action' => 'Tarik dari Telegram',
+        'heading' => 'Tarik penjualan harian dari Telegram',
+        'description' => 'Tempel pesan penjualan harian, atau unggah hasil "Export chat history" Telegram Desktop (JSON). Satu pesan = satu hari, diawali "Penjualan <tanggal>". Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
+        'text' => 'Tempel pesan',
+        'file' => 'Atau unggah berkas ekspor Telegram',
+        'file_help' => 'Berkas result.json dari Telegram Desktop → ⋮ → Export chat history → format JSON.',
+        'empty' => 'Tempel pesan atau unggah berkas dulu.',
+        'unreadable' => 'Berkas JSON dari Telegram tidak bisa dibaca.',
+        'nothing_found' => 'Tidak ada pesan penjualan. Pesan harus diawali "Penjualan 26 Sep 2026", lalu satu baris per channel, mis. "Cash: 1.545.390".',
+        'unknown_label' => ':date: nama ":label" tidak dikenal. Yang dikenal: :valid.',
+        'bad_amount' => ':date: angka ":value" di baris :label tidak wajar. Tulis seperti 1.545.390.',
+        'no_amounts' => ':date: tidak ada angka satu pun. Tulis satu baris per channel, mis. "Cash: 1.545.390".',
+        'total_mismatch' => ':date: Total :total tidak sama dengan jumlah channel :sum. Periksa angkanya.',
+        'repeated_note' => 'Dikirim lebih dari sekali, pesan terakhir dipakai: :dates',
+    ],
+
     'count' => [
         'created' => ':count baru',
         'updated' => ':count diperbarui',

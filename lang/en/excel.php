@@ -88,6 +88,23 @@ return [
         'skipped_note' => 'Skipped, already filled: :dates',
     ],
 
+    'telegram' => [
+        'action' => 'Pull from Telegram',
+        'heading' => 'Pull daily sales from Telegram',
+        'description' => 'Paste the daily sales messages, or upload the Telegram Desktop "Export chat history" file (JSON). One message = one day, starting with "Penjualan <date>". Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
+        'text' => 'Paste messages',
+        'file' => 'Or upload the Telegram export file',
+        'file_help' => 'result.json from Telegram Desktop → ⋮ → Export chat history → JSON format.',
+        'empty' => 'Paste messages or upload a file first.',
+        'unreadable' => 'The Telegram JSON file could not be read.',
+        'nothing_found' => 'No sales messages found. A message must start with "Penjualan 26 Sep 2026", then one line per channel, e.g. "Cash: 1.545.390".',
+        'unknown_label' => ':date: name ":label" is not recognised. Known: :valid.',
+        'bad_amount' => ':date: amount ":value" on line :label looks wrong. Write it like 1.545.390.',
+        'no_amounts' => ':date: no amounts at all. Write one line per channel, e.g. "Cash: 1.545.390".',
+        'total_mismatch' => ':date: Total :total does not match the channel sum :sum. Check the numbers.',
+        'repeated_note' => 'Sent more than once, the last message is used: :dates',
+    ],
+
     'count' => [
         'created' => ':count new',
         'updated' => ':count updated',
