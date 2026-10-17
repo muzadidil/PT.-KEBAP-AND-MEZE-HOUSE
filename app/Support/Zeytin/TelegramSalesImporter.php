@@ -59,15 +59,18 @@ class TelegramSalesImporter
     ];
 
     /**
+     * Membaca teks menjadi angka per hari TANPA menyimpan apa pun.
+     *
      * @param  Carbon|null  $defaultDate  tanggal untuk pesan TANPA judul "Penjualan <tanggal>"
      *                                    (dipakai bot: tanggal pesan dikirim)
+     * @return array{days: array<string, array<string, int>>, errors: array<int, string>, repeated: array<string, string>}
      */
-    public function import(string $input, ?Carbon $defaultDate = null): ImportReport
+    public function parse(string $input, ?Carbon $defaultDate = null): array
     {
         $messages = static::messages($input);
 
         if ($messages === null) {
-            return ImportReport::failed([__('excel.telegram.unreadable')]);
+            return ['days' => [], 'errors' => [__('excel.telegram.unreadable')], 'repeated' => []];
         }
 
         $errors = [];
@@ -141,6 +144,14 @@ class TelegramSalesImporter
 
             $days[$iso] = $channels;
         }
+
+        return ['days' => $days, 'errors' => $errors, 'repeated' => $repeated];
+    }
+
+    /** Membaca lalu langsung mencatat ke Pemasukan Harian (impor manual). */
+    public function import(string $input, ?Carbon $defaultDate = null): ImportReport
+    {
+        ['days' => $days, 'errors' => $errors, 'repeated' => $repeated] = $this->parse($input, $defaultDate);
 
         if ($errors) {
             return ImportReport::failed($errors);

@@ -89,20 +89,6 @@ return [
     ],
 
     'telegram' => [
-        'pull' => [
-            'action' => 'Pull from Telegram bot',
-            'heading' => 'Pull sales from the Telegram bot',
-            'description' => 'Reads new messages in the Telegram group right now, no pasting. Valid reports go straight into Daily Income and the bot replies in the group. Existing dates are never overwritten.',
-            'submit' => 'Pull now',
-            'no_token' => 'TELEGRAM_BOT_TOKEN is not set in the hosting .env.',
-            'no_chat_ids' => 'Group id not set yet',
-            'chat_ids_found' => 'Put one of these ids in TELEGRAM_CHAT_IDS in .env, then pull again:',
-            'no_messages' => 'No messages seen yet. Make the bot a group admin, send a new message to the group, then pull again.',
-            'done' => 'Telegram read',
-            'summary' => ':checked messages checked: :recorded recorded, :skipped skipped (date exists), :failed wrong format, :ignored ignored (not a report).',
-            'failed' => 'Could not read Telegram',
-            'busy' => 'Another process is reading right now. Try again shortly.',
-        ],
         'action' => 'Paste Telegram messages (manual)',
         'heading' => 'Pull daily sales from Telegram',
         'description' => 'Sales messages in the Telegram group are read AUTOMATICALLY by the bot (no need to paste them here). This box is a manual backup: paste messages starting with "Penjualan <date>", or upload the Telegram Desktop "Export chat history" file (JSON). Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',

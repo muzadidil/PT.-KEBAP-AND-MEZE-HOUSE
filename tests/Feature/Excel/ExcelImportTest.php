@@ -10,6 +10,7 @@ use App\Filament\Admin\Resources\PayComponents\PayComponentResource;
 use App\Filament\Admin\Resources\Payslips\PayslipResource;
 use App\Filament\Admin\Resources\Zeytin\BalanceAdjustments\BalanceAdjustmentResource;
 use App\Filament\Admin\Resources\Zeytin\BankTransactions\BankTransactionResource;
+use App\Filament\Admin\Resources\Zeytin\TelegramReports\TelegramReportResource;
 use App\Filament\Admin\Resources\Zeytin\OwnerSalaries\OwnerSalaryResource;
 use App\Filament\Admin\Resources\Products\ProductResource;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
@@ -65,6 +66,8 @@ class ExcelImportTest extends TestCase
         OwnerSalaryResource::class,
         // Antrean notifikasi bank: diisi dari email, bukan dari berkas.
         BankTransactionResource::class,
+        // Antrean laporan Telegram: diisi bot, dikonfirmasi satu per satu.
+        TelegramReportResource::class,
         // Koreksi saldo: beberapa baris dengan alasan, diketik langsung.
         BalanceAdjustmentResource::class,
     ];

@@ -6,12 +6,12 @@ use App\Support\Telegram\TelegramBot;
 use App\Support\Telegram\TelegramSalesPoller;
 use Illuminate\Console\Command;
 
-/** Baca pesan penjualan harian dari grup Telegram ke Pemasukan Harian. Dijadwalkan lewat cron. */
+/** Baca pesan penjualan harian dari grup Telegram ke antrean konfirmasi. Dijadwalkan lewat cron. */
 class FetchTelegramSales extends Command
 {
     protected $signature = 'telegram:fetch {--chats : hanya tampilkan id grup yang terlihat (tidak mencatat apa pun)}';
 
-    protected $description = 'Baca pesan penjualan harian di grup Telegram dan catat ke Pemasukan Harian';
+    protected $description = 'Baca pesan penjualan harian di grup Telegram dan masukkan ke Antrean Telegram';
 
     public function handle(): int
     {
@@ -53,7 +53,7 @@ class FetchTelegramSales extends Command
             return self::SUCCESS;
         }
 
-        $this->info("Dicek {$result['checked']} pesan: {$result['recorded']} dicatat, {$result['skipped']} dilewati (tanggal sudah ada), {$result['failed']} salah format, {$result['ignored']} diabaikan (bukan laporan penjualan).");
+        $this->info("Dicek {$result['checked']} pesan: {$result['queued']} masuk antrean (menunggu konfirmasi), {$result['failed']} salah format, {$result['ignored']} diabaikan (bukan laporan penjualan).");
 
         return self::SUCCESS;
     }

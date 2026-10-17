@@ -8,8 +8,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Membaca pesan baru di grup Telegram dan mencatat laporan penjualan harian
- * lewat TelegramSalesImporter (aturan dan pengamannya sama dengan impor manual).
+ * Membaca pesan baru di grup Telegram dan memasukkan laporan penjualan harian
+ * ke antrean (TelegramQueue). Pembacaan memakai TelegramSalesImporter, jadi
+ * format dan pengamannya sama dengan impor manual; tidak ada yang langsung
+ * masuk ke pembukuan, Admin yang mengonfirmasi.
  *
  * Pengaman tambahan khusus bot:
  *   - Hanya chat di TELEGRAM_CHAT_IDS yang dibaca. Daftar kosong = tidak ada
@@ -27,7 +29,7 @@ class TelegramSalesPoller
     public function __construct(protected TelegramBot $bot) {}
 
     /**
-     * @return array{checked: int, recorded: int, skipped: int, failed: int, ignored: int, chats: array<string, string>}
+     * @return array{checked: int, queued: int, failed: int, ignored: int, chats: array<string, string>}
      */
     public function run(bool $discoverOnly = false): array
     {
@@ -36,7 +38,7 @@ class TelegramSalesPoller
         $lock = Cache::lock('telegram-poll', 120);
 
         if (! $lock->get()) {
-            throw new \RuntimeException(__('excel.telegram.pull.busy'));
+            throw new \RuntimeException(__('telegram.pull.busy'));
         }
 
         try {
@@ -46,10 +48,10 @@ class TelegramSalesPoller
         }
     }
 
-    /** @return array{checked: int, recorded: int, skipped: int, failed: int, ignored: int, chats: array<string, string>} */
+    /** @return array{checked: int, queued: int, failed: int, ignored: int, chats: array<string, string>} */
     protected function poll(bool $discoverOnly): array
     {
-        $result = ['checked' => 0, 'recorded' => 0, 'skipped' => 0, 'failed' => 0, 'ignored' => 0, 'chats' => []];
+        $result = ['checked' => 0, 'queued' => 0, 'failed' => 0, 'ignored' => 0, 'chats' => []];
         $offset = (int) Setting::get(self::OFFSET_KEY, 0);
 
         foreach ($this->bot->updates($offset) as $update) {
@@ -92,25 +94,35 @@ class TelegramSalesPoller
 
         // Tanpa judul tanggal, hari ini (waktu setempat) saat pesan dikirim yang dipakai.
         $sentAt = Carbon::createFromTimestamp((int) ($message['date'] ?? time()), config('telegram.timezone'));
-        $report = (new TelegramSalesImporter)->import($text, $sentAt);
-        $replyTo = (int) ($message['message_id'] ?? 0) ?: null;
+        $parsed = (new TelegramSalesImporter)->parse($text, $sentAt);
+        $messageId = (int) ($message['message_id'] ?? 0);
+        $replyTo = $messageId ?: null;
 
-        if (! $report->ok()) {
+        if ($parsed['errors'] || ! $parsed['days']) {
             $result['failed']++;
-            $this->reply($chatId, $replyTo, "❌ Tidak disimpan.\n".implode("\n", array_slice($report->errors, 0, 3))."\nBetulkan pesannya lalu kirim ulang.");
+            $this->reply($chatId, $replyTo, "❌ Tidak diterima.\n".implode("\n", array_slice($parsed['errors'] ?: [__('excel.telegram.nothing_found')], 0, 3))."\nBetulkan pesannya lalu kirim ulang.");
 
             return;
         }
 
-        if (($report->counts['created'] ?? 0) > 0) {
-            $result['recorded']++;
-            $this->reply($chatId, $replyTo, '✅ Tercatat. '.$report->note);
+        $sender = trim(($message['from']['first_name'] ?? '').' '.($message['from']['last_name'] ?? '')) ?: ($message['from']['username'] ?? null);
+        $lines = [];
 
-            return;
+        foreach ($parsed['days'] as $date => $amounts) {
+            ['report' => $report, 'created' => $created] = TelegramQueue::stage($chatId, $messageId, $sender, $sentAt, $date, $amounts, $text);
+
+            if (! $created) {
+                continue;
+            }
+
+            $result['queued']++;
+            $lines[] = $report->report_date->translatedFormat('j M Y').' · Total Rp '.number_format($report->total(), 0, ',', '.')
+                .($report->dateTaken() ? ' (⚠️ tanggal ini sudah ada datanya)' : '');
         }
 
-        $result['skipped']++;
-        $this->reply($chatId, $replyTo, '⚠️ Tidak ada yang disimpan. '.$report->note."\nTanggal itu sudah ada datanya. Kalau perlu diubah, edit di menu Pemasukan Harian.");
+        if ($lines) {
+            $this->reply($chatId, $replyTo, "📥 Diterima, menunggu konfirmasi admin.\n".implode("\n", $lines));
+        }
     }
 
     protected function reply(string $chatId, ?int $replyTo, string $text): void

@@ -45,6 +45,7 @@ class PanelAccessTest extends TestCase
             'cash balance' => ['filament.admin.pages.cash-balance'],
             'bank balance' => ['filament.admin.pages.bank-balance'],
             'balance adjustments' => ['filament.admin.resources.zeytin.balance-adjustments.index'],
+            'telegram reports' => ['filament.admin.resources.zeytin.telegram-reports.index'],
             'bank transactions' => ['filament.admin.resources.zeytin.bank-transactions.index'],
             'import excel' => ['filament.admin.pages.import-excel'],
             'daily incomes' => ['filament.admin.resources.zeytin.daily-incomes.index'],
