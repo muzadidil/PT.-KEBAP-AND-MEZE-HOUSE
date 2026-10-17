@@ -91,7 +91,7 @@ return [
     'telegram' => [
         'action' => 'Tarik dari Telegram',
         'heading' => 'Tarik penjualan harian dari Telegram',
-        'description' => 'Tempel pesan penjualan harian, atau unggah hasil "Export chat history" Telegram Desktop (JSON). Satu pesan = satu hari, diawali "Penjualan <tanggal>". Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
+        'description' => 'Pesan penjualan di grup Telegram dibaca OTOMATIS oleh bot (tidak perlu ditempel di sini). Kotak ini hanya cadangan manual: tempel pesan (mis. "1. Cash: 158.975" tanpa tanggal = hari ini, atau diawali "Penjualan <tanggal>" untuk tanggal lain), atau unggah hasil "Export chat history" Telegram Desktop (JSON). Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
         'text' => 'Tempel pesan',
         'file' => 'Atau unggah berkas ekspor Telegram',
         'file_help' => 'Berkas result.json dari Telegram Desktop → ⋮ → Export chat history → format JSON.',

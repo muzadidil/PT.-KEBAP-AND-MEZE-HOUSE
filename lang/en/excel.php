@@ -91,7 +91,7 @@ return [
     'telegram' => [
         'action' => 'Pull from Telegram',
         'heading' => 'Pull daily sales from Telegram',
-        'description' => 'Paste the daily sales messages, or upload the Telegram Desktop "Export chat history" file (JSON). One message = one day, starting with "Penjualan <date>". Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
+        'description' => 'Sales messages in the Telegram group are read AUTOMATICALLY by the bot (no need to paste them here). This box is a manual backup: paste messages starting with "Penjualan <date>", or upload the Telegram Desktop "Export chat history" file (JSON). Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
         'text' => 'Paste messages',
         'file' => 'Or upload the Telegram export file',
         'file_help' => 'result.json from Telegram Desktop → ⋮ → Export chat history → JSON format.',
