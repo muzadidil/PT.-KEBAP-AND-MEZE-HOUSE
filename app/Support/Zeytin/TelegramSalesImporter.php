@@ -147,6 +147,12 @@ class TelegramSalesImporter
             : null);
     }
 
+    /** Apakah teks ini laporan penjualan (ada judul "Penjualan <tanggal>")? */
+    public static function hasReport(string $text): bool
+    {
+        return static::blocks([$text]) !== [];
+    }
+
     /**
      * Teks pesan satu per satu. JSON ekspor Telegram diuraikan per pesan;
      * selain itu seluruh teks diperlakukan sebagai satu aliran.
