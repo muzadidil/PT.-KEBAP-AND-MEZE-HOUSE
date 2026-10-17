@@ -4,6 +4,7 @@ namespace App\Support\Telegram;
 
 use App\Models\Setting;
 use App\Support\Zeytin\TelegramSalesImporter;
+use Illuminate\Support\Carbon;
 
 /**
  * Membaca pesan baru di grup Telegram dan mencatat laporan penjualan harian
@@ -64,13 +65,15 @@ class TelegramSalesPoller
 
         if (! in_array($chatId, config('telegram.chat_ids', []), true)
             || ($allowedUsers && ! in_array($userId, $allowedUsers, true))
-            || ! TelegramSalesImporter::hasReport($text)) {
+            || ! TelegramSalesImporter::hasReport($text, allowUndated: true)) {
             $result['ignored']++;
 
             return;
         }
 
-        $report = (new TelegramSalesImporter)->import($text);
+        // Tanpa judul tanggal, hari ini (waktu setempat) saat pesan dikirim yang dipakai.
+        $sentAt = Carbon::createFromTimestamp((int) ($message['date'] ?? time()), config('telegram.timezone'));
+        $report = (new TelegramSalesImporter)->import($text, $sentAt);
         $replyTo = (int) ($message['message_id'] ?? 0) ?: null;
 
         if (! $report->ok()) {

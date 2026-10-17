@@ -70,6 +70,59 @@ class TelegramBotTest extends TestCase
         $this->assertStringContainsString('✅', $this->sent()[0]);
     }
 
+    protected const PLAIN = "1. Cash: Rp158.975\n2. BNI: Rp4.802.400\n3. Grab: Rp1.518.825";
+
+    public function test_pesan_tanpa_tanggal_dicatat_ke_hari_pesan_dikirim(): void
+    {
+        // 17 Okt 2026 23:30 WITA = 15:30 UTC
+        $this->updates([['chat' => ['id' => -100], 'date' => \Illuminate\Support\Carbon::parse('2026-10-17 15:30:00', 'UTC')->timestamp, 'text' => self::PLAIN]]);
+
+        $result = $this->run_();
+
+        $this->assertSame(1, $result['recorded']);
+        $row = DailyIncome::query()->whereDate('date', '2026-10-17')->first();
+        $this->assertSame(158975, (int) $row->cash);
+        $this->assertSame(4802400, (int) $row->bni);
+        $this->assertSame(1518825, (int) $row->grab_food);
+        $this->assertStringContainsString('✅', $this->sent()[0]);
+    }
+
+    public function test_lewat_tengah_malam_waktu_setempat_masuk_hari_berikutnya(): void
+    {
+        // 16:30 UTC = 00:30 WITA tanggal 18
+        $this->updates([['chat' => ['id' => -100], 'date' => \Illuminate\Support\Carbon::parse('2026-10-17 16:30:00', 'UTC')->timestamp, 'text' => self::PLAIN]]);
+
+        $this->run_();
+
+        $this->assertNotNull(DailyIncome::query()->whereDate('date', '2026-10-18')->first());
+        $this->assertNull(DailyIncome::query()->whereDate('date', '2026-10-17')->first());
+    }
+
+    public function test_judul_tanggal_mengalahkan_tanggal_kirim(): void
+    {
+        $this->updates([['chat' => ['id' => -100], 'date' => \Illuminate\Support\Carbon::parse('2026-10-17 05:00:00', 'UTC')->timestamp, 'text' => self::REPORT]]);
+
+        $this->run_();
+
+        $this->assertNotNull(DailyIncome::query()->whereDate('date', '2026-09-26')->first());
+        $this->assertSame(1, DailyIncome::count());
+    }
+
+    public function test_pesan_tanpa_tanggal_dengan_nama_salah_ditolak_dan_obrolan_dengan_titik_dua_diabaikan(): void
+    {
+        $this->updates([
+            ['chat' => ['id' => -100], 'date' => time(), 'text' => "Cash: 1.000\nShopeeFood: 5.000"],
+            ['chat' => ['id' => -100], 'date' => time(), 'text' => 'ok: 5'],
+            ['chat' => ['id' => -100], 'date' => time(), 'text' => 'Jam buka: 10'],
+        ]);
+
+        $result = $this->run_();
+
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame(2, $result['ignored']);
+        $this->assertSame(0, DailyIncome::count());
+    }
+
     public function test_grup_lain_diabaikan(): void
     {
         $this->updates([['chat' => ['id' => -999], 'text' => self::REPORT]]);

@@ -39,9 +39,13 @@ class TelegramSalesImporter
         'tunai' => 'cash',
         'bni' => 'bni',
         'grabfood' => 'grab_food',
+        'grab' => 'grab_food',
         'gofood' => 'go_food',
         'gopay' => 'go_pay',
     ];
+
+    /** "Cash: Rp1.000", dengan nomor di depan boleh: "1. Cash: Rp1.000". */
+    protected const LINE = '/^\s*(?:\d+\s*[.)]\s*)?([\p{L}][\p{L} ]*?)\s*[:=]\s*(?:rp\.?\s*)?([\d.,]+)\s*$/iu';
 
     protected const TOTAL_LABELS = ['total', 'totalpenjualan', 'totalsales', 'jumlah'];
 
@@ -54,7 +58,11 @@ class TelegramSalesImporter
         'nov' => 11, 'november' => 11, 'des' => 12, 'desember' => 12, 'dec' => 12, 'december' => 12,
     ];
 
-    public function import(string $input): ImportReport
+    /**
+     * @param  Carbon|null  $defaultDate  tanggal untuk pesan TANPA judul "Penjualan <tanggal>"
+     *                                    (dipakai bot: tanggal pesan dikirim)
+     */
+    public function import(string $input, ?Carbon $defaultDate = null): ImportReport
     {
         $messages = static::messages($input);
 
@@ -66,7 +74,7 @@ class TelegramSalesImporter
         $days = [];
         $repeated = [];
 
-        foreach (static::blocks($messages) as $block) {
+        foreach (static::blocks($messages, $defaultDate) as $block) {
             $date = $block['date'];
             $channels = array_fill_keys(Channels::keys(), 0);
             $seen = 0;
@@ -74,7 +82,7 @@ class TelegramSalesImporter
             $label = $date->translatedFormat('j M Y');
 
             foreach ($block['lines'] as $line) {
-                if (! preg_match('/^\s*([\p{L}][\p{L} ]*?)\s*[:=]\s*(?:rp\.?\s*)?([\d.,]+)\s*$/iu', $line, $m)) {
+                if (! preg_match(static::LINE, $line, $m)) {
                     continue;
                 }
 
@@ -148,9 +156,25 @@ class TelegramSalesImporter
     }
 
     /** Apakah teks ini laporan penjualan (ada judul "Penjualan <tanggal>")? */
-    public static function hasReport(string $text): bool
+    public static function hasReport(string $text, bool $allowUndated = false): bool
     {
-        return static::blocks([$text]) !== [];
+        if (static::blocks([$text]) !== []) {
+            return true;
+        }
+
+        return $allowUndated && static::hasChannelLine($text);
+    }
+
+    /** Ada minimal satu baris "<channel>: <angka>" yang namanya dikenal? */
+    protected static function hasChannelLine(string $text): bool
+    {
+        foreach (preg_split('/\R/u', $text) ?: [] as $line) {
+            if (preg_match(static::LINE, $line, $m) && isset(self::LABELS[static::key($m[1])])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -202,15 +226,19 @@ class TelegramSalesImporter
      * <tanggal>", berakhir di judul berikutnya. Baris sebelum judul pertama
      * diabaikan.
      *
+     * Pesan tanpa judul sama sekali dibaca sebagai satu hari penuh bertanggal
+     * $defaultDate (kalau diberikan) — asal ada baris channel yang dikenal.
+     *
      * @param  array<int, string>  $messages
      * @return array<int, array{date: Carbon, lines: array<int, string>}>
      */
-    protected static function blocks(array $messages): array
+    protected static function blocks(array $messages, ?Carbon $defaultDate = null): array
     {
         $blocks = [];
 
         foreach ($messages as $message) {
             $current = null;
+            $before = count($blocks);
 
             foreach (preg_split('/\R/u', $message) ?: [] as $line) {
                 if (preg_match('/penjualan/iu', $line) && ! preg_match('/^\s*total/iu', $line)) {
@@ -227,6 +255,10 @@ class TelegramSalesImporter
                 if ($current !== null) {
                     $blocks[$current]['lines'][] = $line;
                 }
+            }
+
+            if ($defaultDate && count($blocks) === $before && static::hasChannelLine($message)) {
+                $blocks[] = ['date' => $defaultDate->copy()->startOfDay(), 'lines' => preg_split('/\R/u', $message) ?: []];
             }
         }
 

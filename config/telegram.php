@@ -20,5 +20,8 @@ return [
     // Bot membalas di grup (berhasil / gagal + alasannya).
     'reply' => (bool) env('TELEGRAM_REPLY', true),
 
+    // Zona waktu untuk menentukan "hari ini" pada pesan tanpa judul tanggal.
+    'timezone' => env('TELEGRAM_TIMEZONE', 'Asia/Makassar'),
+
     'timeout' => 20,
 ];
