@@ -89,7 +89,21 @@ return [
     ],
 
     'telegram' => [
-        'action' => 'Tarik dari Telegram',
+        'pull' => [
+            'action' => 'Tarik dari bot Telegram',
+            'heading' => 'Tarik penjualan dari bot Telegram',
+            'description' => 'Membaca pesan baru di grup Telegram sekarang juga, tanpa tempel. Laporan yang benar langsung masuk ke Pemasukan Harian dan bot membalas di grup. Tanggal yang sudah ada tidak ditimpa.',
+            'submit' => 'Tarik sekarang',
+            'no_token' => 'TELEGRAM_BOT_TOKEN belum diisi di .env hosting.',
+            'no_chat_ids' => 'Id grup belum diisi',
+            'chat_ids_found' => 'Isi TELEGRAM_CHAT_IDS di .env dengan salah satu id ini, lalu tarik lagi:',
+            'no_messages' => 'Belum ada pesan terbaca. Jadikan bot admin grup, kirim satu pesan baru ke grup, lalu tarik lagi.',
+            'done' => 'Telegram dibaca',
+            'summary' => ':checked pesan dicek: :recorded dicatat, :skipped dilewati (tanggal sudah ada), :failed salah format, :ignored diabaikan (bukan laporan).',
+            'failed' => 'Gagal membaca Telegram',
+            'busy' => 'Sedang dibaca oleh proses lain. Coba lagi sebentar.',
+        ],
+        'action' => 'Tempel pesan Telegram (manual)',
         'heading' => 'Tarik penjualan harian dari Telegram',
         'description' => 'Pesan penjualan di grup Telegram dibaca OTOMATIS oleh bot (tidak perlu ditempel di sini). Kotak ini hanya cadangan manual: tempel pesan yang diawali "Penjualan <tanggal>", atau unggah hasil "Export chat history" Telegram Desktop (JSON). Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
         'text' => 'Tempel pesan',

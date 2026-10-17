@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Zeytin\DailyIncomes\Pages;
 use App\Filament\Admin\Actions\ExcelActions;
 use App\Filament\Admin\Resources\Zeytin\DailyIncomes\DailyIncomeResource;
 use App\Filament\Admin\Actions\PosSalesAction;
+use App\Filament\Admin\Actions\TelegramPullAction;
 use App\Filament\Admin\Actions\TelegramSalesAction;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
@@ -18,6 +19,7 @@ class ManageDailyIncomes extends ManageRecords
         return [
             ...ExcelActions::make(DailyIncomeResource::excel()),
             PosSalesAction::make(),
+            TelegramPullAction::make(),
             TelegramSalesAction::make(),
             CreateAction::make(),
         ];

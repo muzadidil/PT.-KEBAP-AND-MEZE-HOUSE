@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Zeytin;
 
+use App\Filament\Admin\Resources\Zeytin\DailyIncomes\Pages\ManageDailyIncomes;
 use App\Models\DailyIncome;
 use App\Models\Setting;
 use App\Support\Telegram\TelegramBot;
 use App\Support\Telegram\TelegramSalesPoller;
 use Illuminate\Http\Client\Request;
+use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -121,6 +125,61 @@ class TelegramBotTest extends TestCase
         $this->assertSame(1, $result['failed']);
         $this->assertSame(2, $result['ignored']);
         $this->assertSame(0, DailyIncome::count());
+    }
+
+    public function test_tombol_tarik_membaca_bot_langsung_dan_mencatat(): void
+    {
+        Filament::setCurrentPanel('admin');
+        $this->updates([['chat' => ['id' => -100], 'date' => time(), 'text' => self::PLAIN]]);
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageDailyIncomes::class)
+            ->assertActionExists('telegramPull')
+            ->callAction('telegramPull')
+            ->assertNotified(__('excel.telegram.pull.done'));
+
+        $this->assertSame(1, DailyIncome::count());
+    }
+
+    public function test_tombol_tarik_tanpa_id_grup_hanya_menampilkan_id_dan_tidak_mencatat(): void
+    {
+        Filament::setCurrentPanel('admin');
+        config(['telegram.chat_ids' => []]);
+        $this->updates([['chat' => ['id' => -100, 'title' => 'Laporan Zeytin'], 'date' => time(), 'text' => self::PLAIN]]);
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageDailyIncomes::class)
+            ->callAction('telegramPull')
+            ->assertNotified(__('excel.telegram.pull.no_chat_ids'));
+
+        $this->assertSame(0, DailyIncome::count());
+    }
+
+    public function test_tombol_tarik_tanpa_token_memberi_tahu(): void
+    {
+        Filament::setCurrentPanel('admin');
+        config(['telegram.token' => null]);
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageDailyIncomes::class)
+            ->callAction('telegramPull')
+            ->assertNotified(__('excel.telegram.pull.failed'));
+    }
+
+    public function test_dua_proses_bersamaan_tidak_membaca_dua_kali(): void
+    {
+        $lock = Cache::lock('telegram-poll', 120);
+        $this->assertTrue($lock->get());
+        $this->updates([['chat' => ['id' => -100], 'date' => time(), 'text' => self::PLAIN]]);
+
+        try {
+            $this->run_();
+            $this->fail('Seharusnya menolak karena sedang dibaca proses lain.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame(0, DailyIncome::count());
+        } finally {
+            $lock->release();
+        }
     }
 
     public function test_grup_lain_diabaikan(): void

@@ -5,6 +5,7 @@ namespace App\Support\Telegram;
 use App\Models\Setting;
 use App\Support\Zeytin\TelegramSalesImporter;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Membaca pesan baru di grup Telegram dan mencatat laporan penjualan harian
@@ -29,6 +30,24 @@ class TelegramSalesPoller
      * @return array{checked: int, recorded: int, skipped: int, failed: int, ignored: int, chats: array<string, string>}
      */
     public function run(bool $discoverOnly = false): array
+    {
+        // Cron dan tombol di layar bisa berjalan bersamaan; satu saja yang boleh
+        // membaca, supaya balasan tidak ganda dan offset tidak saling timpa.
+        $lock = Cache::lock('telegram-poll', 120);
+
+        if (! $lock->get()) {
+            throw new \RuntimeException(__('excel.telegram.pull.busy'));
+        }
+
+        try {
+            return $this->poll($discoverOnly);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /** @return array{checked: int, recorded: int, skipped: int, failed: int, ignored: int, chats: array<string, string>} */
+    protected function poll(bool $discoverOnly): array
     {
         $result = ['checked' => 0, 'recorded' => 0, 'skipped' => 0, 'failed' => 0, 'ignored' => 0, 'chats' => []];
         $offset = (int) Setting::get(self::OFFSET_KEY, 0);
