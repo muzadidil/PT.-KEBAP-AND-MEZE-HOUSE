@@ -7,8 +7,10 @@ use App\Filament\Admin\Resources\Zeytin\Concerns\BookkeepingResource;
 use App\Filament\Admin\Resources\Zeytin\Payrolls\Pages\ManagePayrolls;
 use App\Models\Payroll;
 use App\Support\Excel\ExcelSource;
+use App\Support\Money;
 use App\Support\Zeytin\Workbook\SpecSource;
 use BackedEnum;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -22,6 +24,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use UnitEnum;
 
@@ -138,6 +142,14 @@ class PayrollResource extends Resource
 
                 static::totalColumn('grand_total'),
 
+                TextColumn::make('paid_on')
+                    ->label(__('payroll_paid.col'))
+                    ->date('d M Y')
+                    ->placeholder(__('payroll_paid.unpaid'))
+                    ->description(fn (Payroll $record) => $record->paid_via ? __('payroll_paid.via.'.$record->paid_via) : null)
+                    ->color(fn (Payroll $record) => $record->paid_on ? 'success' : 'gray')
+                    ->sortable(),
+
                 static::sourceColumn(),
             ])
             ->filters([
@@ -155,9 +167,91 @@ class PayrollResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('markPaid')
+                        ->label(__('payroll_paid.bulk.paid'))
+                        ->icon(Heroicon::OutlinedBanknotes)
+                        ->modalHeading(__('payroll_paid.bulk.paid_heading'))
+                        ->modalDescription(__('payroll_paid.bulk.paid_description'))
+                        ->modalSubmitActionLabel(__('payroll_paid.submit'))
+                        ->fillForm(fn () => ['paid_on' => now()->toDateString(), 'paid_via' => Payroll::VIA_BANK])
+                        ->schema(static::paymentFields())
+                        ->action(function (Collection $records, array $data) {
+                            static::markPaid($records->where('paid_on', null), (string) $data['paid_on'], (string) $data['paid_via']);
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('markUnpaid')
+                        ->label(__('payroll_paid.bulk.unpaid'))
+                        ->icon(Heroicon::OutlinedArrowUturnLeft)
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('payroll_paid.bulk.unpaid_heading'))
+                        ->modalDescription(__('payroll_paid.bulk.unpaid_description'))
+                        ->action(function (Collection $records) {
+                            $records->each->update(['paid_on' => null, 'paid_via' => null]);
+
+                            Notification::make()->success()->title(__('payroll_paid.unmarked', ['count' => $records->count()]))->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** @return array<int, \Filament\Forms\Components\Component> */
+    public static function paymentFields(): array
+    {
+        return [
+            DatePicker::make('paid_on')
+                ->label(__('payroll_paid.field.paid_on'))
+                ->helperText(__('payroll_paid.field.paid_on_help'))
+                ->native(false)
+                ->displayFormat('d M Y')
+                ->maxDate(now()->addDay())
+                ->required(),
+
+            Select::make('paid_via')
+                ->label(__('payroll_paid.field.paid_via'))
+                ->options([
+                    Payroll::VIA_BANK => __('payroll_paid.via.bank'),
+                    Payroll::VIA_CASH => __('payroll_paid.via.cash'),
+                ])
+                ->default(Payroll::VIA_BANK)
+                ->native(false)
+                ->required(),
+        ];
+    }
+
+    /**
+     * Mencatat gaji sebagai sudah dibayar: mulai tanggal itu, jumlahnya
+     * mengurangi Saldo Bank (atau Sisa Cash). Hanya baris yang belum
+     * bertanggal bayar, jadi gaji yang sama tidak terhitung dua kali.
+     *
+     * @param  iterable<int, Payroll>  $rows
+     */
+    public static function markPaid(iterable $rows, string $date, string $via): void
+    {
+        $rows = collect($rows)->filter(fn (Payroll $row) => $row->paid_on === null);
+
+        if ($rows->isEmpty()) {
+            Notification::make()->warning()->title(__('payroll_paid.nothing'))->body(__('payroll_paid.nothing_body'))->send();
+
+            return;
+        }
+
+        $rows->each->update(['paid_on' => $date, 'paid_via' => $via]);
+
+        Notification::make()
+            ->success()
+            ->title(__('payroll_paid.marked'))
+            ->body(__('payroll_paid.marked_body', [
+                'count' => $rows->count(),
+                'total' => Money::format((int) $rows->sum('grand_total')),
+                'date' => Carbon::parse($date)->translatedFormat('j M Y'),
+                'via' => __('payroll_paid.via.'.$via),
+            ]))
+            ->send();
     }
 
     /**

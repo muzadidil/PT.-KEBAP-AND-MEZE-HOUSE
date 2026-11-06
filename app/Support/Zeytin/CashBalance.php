@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Models\BalanceAdjustment;
 use App\Models\DailyIncome;
 use App\Models\Expense;
+use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\Setting;
 use Illuminate\Support\Carbon;
@@ -66,7 +67,7 @@ class CashBalance
             array_filter(PaymentMethod::cases(), fn (PaymentMethod $m) => $m->isCash()),
         );
 
-        return Expense::query()
+        $out = Expense::query()
             ->whereIn('method', $methods)
             ->where('is_paid', true)
             ->whereNull('paid_by_owner_id')
@@ -76,6 +77,13 @@ class CashBalance
             ->groupBy(fn (Expense $e) => $e->spent_on->toDateString())
             ->map(fn (Collection $rows) => (int) $rows->sum('amount'))
             ->all();
+
+        // Gaji yang dicatat dibayar tunai, pada tanggal bayarnya.
+        foreach (Payroll::paidByDate(Payroll::VIA_CASH, $from, $to) as $date => $amount) {
+            $out[$date] = ($out[$date] ?? 0) + $amount;
+        }
+
+        return $out;
     }
 
     /**

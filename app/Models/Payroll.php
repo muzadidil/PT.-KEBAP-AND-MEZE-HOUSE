@@ -30,7 +30,36 @@ class Payroll extends Model
             'basic' => 'integer',
             'bpjs' => 'integer',
             'grand_total' => 'integer',
+            'paid_on' => 'date:Y-m-d',
         ];
+    }
+
+    public const VIA_BANK = 'bank';
+
+    public const VIA_CASH = 'cash';
+
+    /**
+     * Gaji yang sudah dibayar lewat $via, dijumlah per tanggal bayar
+     * (Y-m-d => rupiah). Yang belum diberi tanggal bayar tidak ikut.
+     *
+     * @return array<string, int>
+     */
+    public static function paidByDate(string $via, \Illuminate\Support\Carbon $from, \Illuminate\Support\Carbon $to): array
+    {
+        $out = [];
+
+        static::query()
+            ->where('paid_via', $via)
+            ->whereNotNull('paid_on')
+            ->whereDate('paid_on', '>=', $from->toDateString())
+            ->whereDate('paid_on', '<=', $to->toDateString())
+            ->get(['paid_on', 'grand_total'])
+            ->each(function (self $row) use (&$out) {
+                $key = $row->paid_on->toDateString();
+                $out[$key] = ($out[$key] ?? 0) + (int) $row->grand_total;
+            });
+
+        return $out;
     }
 
     protected static function booted(): void

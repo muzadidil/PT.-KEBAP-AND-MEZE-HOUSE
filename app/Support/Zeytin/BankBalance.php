@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Models\BalanceAdjustment;
 use App\Models\DailyIncome;
 use App\Models\Expense;
+use App\Models\Payroll;
 use App\Models\Setting;
 use App\Models\SupplierTransfer;
 use Illuminate\Support\Carbon;
@@ -19,9 +20,10 @@ use Illuminate\Support\Collection;
  * Masuk: BNI, Grab Food, Go Food, Go Pay (semua channel penjualan yang bukan
  * tunai). Keluar: Transfer Pemasok (termasuk yang dicatat dari notifikasi
  * bank) dan menu Pengeluaran yang cara bayarnya bukan Cash, sudah dibayar,
- * dan bukan talangan pemilik. Petty cash, gaji per orang (Gaji), dan Gaji
- * Pemilik tidak ikut: gaji lewat bank dicatat di Pengeluaran, supaya tidak
- * terhitung dua kali.
+ * dan bukan talangan pemilik, serta Gaji yang sudah dicatat dibayar lewat
+ * bank (tombol "Catat pembayaran gaji" di menu Gaji, pada tanggal bayarnya).
+ * Petty cash dan Gaji Pemilik tidak ikut. Awas dobel: gaji yang sama jangan
+ * dicatat lagi di Pengeluaran.
  *
  * Ini PERKIRAAN, bukan mutasi bank. Biaya bank, komisi Grab/Go, dan jeda
  * pencairan dari platform belum tercatat, jadi angkanya bisa lebih besar
@@ -87,6 +89,12 @@ class BankBalance
                 $key = $row->spent_on->toDateString();
                 $out[$key] = ($out[$key] ?? 0) + (int) $row->amount;
             });
+
+        // Gaji yang dibayar lewat bank, pada tanggal bayarnya (diisi dengan
+        // "Catat pembayaran gaji"). Gaji yang belum diberi tanggal bayar tidak ikut.
+        foreach (Payroll::paidByDate(Payroll::VIA_BANK, $from, $to) as $date => $amount) {
+            $out[$date] = ($out[$date] ?? 0) + $amount;
+        }
 
         return $out;
     }
