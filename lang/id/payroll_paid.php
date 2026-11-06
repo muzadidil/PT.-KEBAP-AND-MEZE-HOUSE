@@ -34,4 +34,18 @@ return [
         'unpaid_heading' => 'Batalkan catatan pembayaran?',
         'unpaid_description' => 'Gaji terpilih kembali berstatus belum dibayar dan tidak lagi mengurangi saldo.',
     ],
+
+    'report' => [
+        'col_paid' => 'Tanggal dibayar',
+        'btn_record' => 'Catat tanggal bayar',
+        'btn_change' => 'Ubah',
+        'btn_undo' => 'Batalkan',
+        'heading' => 'Tanggal pembayaran gaji :month',
+        'description' => 'Isi tanggal uang gaji keluar (lihat mutasi bank) dan lewat apa. Mulai tanggal itu, total gaji bulan ini mengurangi Saldo Bank (lewat bank) atau Sisa Cash (tunai). Jangan catat gaji yang sama lagi di Pengeluaran.',
+        'saved_body' => 'Gaji :month · :count orang · dibayar :date · lewat :via. Saldo sekarang berkurang pada tanggal itu.',
+        'partial' => 'baru :paid dari :people orang',
+        'undo_heading' => 'Batalkan catatan bayar gaji :month?',
+        'undone' => 'Catatan bayar dibatalkan',
+        'note' => 'Isi tanggal pembayaran tiap bulan supaya gajinya ikut mengurangi Saldo Bank. Tanpa tanggal, gaji tidak mengurangi saldo apa pun.',
+    ],
 ];

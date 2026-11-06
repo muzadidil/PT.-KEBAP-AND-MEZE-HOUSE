@@ -62,6 +62,22 @@ class Payroll extends Model
         return $out;
     }
 
+    /**
+     * Mengatur tanggal dan cara bayar SEMUA gaji satu bulan sekaligus
+     * (menimpa tanggal sebelumnya). Tanggal null = kembali ke belum dibayar.
+     *
+     * @return int jumlah baris yang diubah
+     */
+    public static function setPaymentForMonth(\Illuminate\Support\Carbon $month, ?string $date, ?string $via): int
+    {
+        return static::query()
+            ->whereDate('month', $month->copy()->startOfMonth()->toDateString())
+            ->update([
+                'paid_on' => $date,
+                'paid_via' => $date ? $via : null,
+            ]);
+    }
+
     protected static function booted(): void
     {
         /*

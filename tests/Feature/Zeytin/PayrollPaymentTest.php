@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Zeytin;
 
+use App\Filament\Admin\Pages\Reports\Salary;
 use App\Filament\Admin\Resources\Zeytin\Payrolls\Pages\ManagePayrolls;
 use App\Models\Payroll;
 use App\Support\Zeytin\BankBalance;
@@ -129,6 +130,65 @@ class PayrollPaymentTest extends TestCase
 
         $this->assertNull($ani->refresh()->paid_on);
         $this->assertSame(0, $this->bankOut());
+    }
+
+    // — Tanggal bayar langsung dari laporan Gaji (milik Admin) —
+
+    public function test_laporan_gaji_mencatat_tanggal_bayar_satu_bulan_dan_mengurangi_saldo_bank(): void
+    {
+        $this->payroll('Ani', 5_000_000);
+        $this->payroll('Budi', 4_000_000);
+        $this->payroll('Citra', 3_000_000, '2026-09-01');
+
+        Livewire::actingAs($this->admin())
+            ->test(Salary::class)
+            ->mountAction('pay', ['month' => '2026-10-01'])
+            ->setActionData(['paid_on' => '2026-11-03', 'paid_via' => 'bank'])
+            ->callMountedAction()
+            ->assertNotified(__('payroll_paid.marked'));
+
+        $this->assertSame(2, Payroll::whereNotNull('paid_on')->count());
+        $this->assertNull(Payroll::where('name', 'Citra')->first()->paid_on);
+        $this->assertSame(9_000_000, $this->bankOut());
+    }
+
+    public function test_laporan_gaji_mengubah_tanggal_menimpa_tanpa_menggandakan(): void
+    {
+        $this->payroll('Ani', 5_000_000, extra: ['paid_on' => '2026-11-03', 'paid_via' => 'bank']);
+
+        Livewire::actingAs($this->admin())
+            ->test(Salary::class)
+            ->mountAction('pay', ['month' => '2026-10-01'])
+            ->setActionData(['paid_on' => '2026-11-05', 'paid_via' => 'bank'])
+            ->callMountedAction();
+
+        $this->assertSame('2026-11-05', Payroll::first()->paid_on->toDateString());
+        $this->assertSame(5_000_000, $this->bankOut());
+    }
+
+    public function test_laporan_gaji_membatalkan_catatan_bayar(): void
+    {
+        $this->payroll('Ani', 5_000_000, extra: ['paid_on' => '2026-11-03', 'paid_via' => 'bank']);
+
+        Livewire::actingAs($this->admin())
+            ->test(Salary::class)
+            ->mountAction('unpay', ['month' => '2026-10-01'])
+            ->callMountedAction();
+
+        $this->assertNull(Payroll::first()->paid_on);
+        $this->assertNull(Payroll::first()->paid_via);
+        $this->assertSame(0, $this->bankOut());
+    }
+
+    public function test_laporan_gaji_menampilkan_tanggal_atau_belum_dicatat(): void
+    {
+        $this->payroll('Ani', 5_000_000);
+        $this->payroll('Citra', 3_000_000, '2026-09-01', ['paid_on' => '2026-10-02', 'paid_via' => 'cash']);
+
+        Livewire::actingAs($this->admin())
+            ->test(Salary::class)
+            ->assertSee(__('payroll_paid.unpaid'))
+            ->assertSee(Carbon::parse('2026-10-02')->translatedFormat('j M Y'));
     }
 
     public function test_hanya_super_admin_bisa_membuka_gaji(): void

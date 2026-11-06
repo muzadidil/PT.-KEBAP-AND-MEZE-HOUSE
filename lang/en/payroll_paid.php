@@ -34,4 +34,18 @@ return [
         'unpaid_heading' => 'Undo the payment record?',
         'unpaid_description' => 'The selected salaries go back to unpaid and no longer reduce any balance.',
     ],
+
+    'report' => [
+        'col_paid' => 'Paid on',
+        'btn_record' => 'Record paid date',
+        'btn_change' => 'Change',
+        'btn_undo' => 'Undo',
+        'heading' => 'Salary payment date :month',
+        'description' => 'Enter the date the salary money left (see the bank statement) and how. From that date the month\'s total salary reduces Bank Balance (bank) or Cash Balance (cash). Do not record the same salary again in Expenses.',
+        'saved_body' => 'Salary :month · :count people · paid :date · via :via. The balance now drops on that date.',
+        'partial' => 'only :paid of :people people',
+        'undo_heading' => 'Undo the paid record for :month salary?',
+        'undone' => 'Paid record undone',
+        'note' => 'Enter the payment date for each month so the salary reduces Bank Balance. Without a date, salary reduces no balance.',
+    ],
 ];
