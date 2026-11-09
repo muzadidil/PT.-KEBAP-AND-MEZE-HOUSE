@@ -43,6 +43,7 @@ class PanelAccessTest extends TestCase
             'monthly ledger' => ['filament.admin.pages.monthly-ledger'],
             'import excel' => ['filament.admin.pages.import-excel'],
             'daily incomes' => ['filament.admin.resources.zeytin.daily-incomes.index'],
+            'moka item sales' => ['filament.admin.resources.zeytin.moka-item-sales.index'],
             'purchases' => ['filament.admin.resources.zeytin.purchases.index'],
             'supplier transfers' => ['filament.admin.resources.zeytin.supplier-transfers.index'],
             'outstanding bills' => ['filament.admin.resources.zeytin.outstanding-bills.index'],

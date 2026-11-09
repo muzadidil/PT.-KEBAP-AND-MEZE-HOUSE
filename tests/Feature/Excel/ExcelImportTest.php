@@ -12,6 +12,7 @@ use App\Filament\Admin\Resources\Products\ProductResource;
 use App\Filament\Admin\Resources\Suppliers\Pages\ManageSuppliers;
 use App\Filament\Admin\Resources\Suppliers\SupplierResource;
 use App\Filament\Admin\Resources\Users\UserResource;
+use App\Filament\Admin\Resources\Zeytin\MokaItemSales\MokaItemSaleResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\Pages\ManagePurchases;
 use App\Filament\Admin\Resources\Zeytin\OutstandingBills\OutstandingBillResource;
 use App\Filament\Admin\Resources\Zeytin\Purchases\PurchaseResource;
@@ -58,6 +59,10 @@ class ExcelImportTest extends TestCase
         // Slip dibuat dari data karyawan dan komponen gaji, bernomor urut;
         // keduanya sudah bisa diimpor.
         PayslipResource::class,
+        // Rekap Report Item Sales dari Moka: berkasnya diunduh dari Moka,
+        // bukan diisi dari template kita, dan tidak memuat tanggalnya sendiri,
+        // jadi punya tombol impor sendiri yang menanyakan periodenya.
+        MokaItemSaleResource::class,
     ];
 
     protected function setUp(): void
