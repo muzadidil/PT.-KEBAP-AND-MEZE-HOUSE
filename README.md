@@ -484,6 +484,62 @@ diambil alih berkas Excel.
 Diuji dengan berkas Agustus klien yang sebenarnya: 230 baris belanja, dan
 mengimpornya berulang kali tetap 230.
 
+### Penjualan per menu dari Moka
+
+Restoran ini memakai dua aplikasi sekaligus: kasir **Moka**, dan pembukuan
+di sini. **Pembukuan Bulanan → Penjualan per Menu (Moka)** menampung laporan
+**Report Item Sales** hasil unduhan Moka (`.xlsx`, apa adanya) supaya apa yang
+terjual per menu bisa dilihat di tempat yang sama dengan pembukuan.
+
+Yang perlu diketahui sebelum memakainya:
+
+- **Ini rekap per menu untuk satu periode, bukan transaksi per struk.** Moka
+  hanya memberi jumlah terjual, penjualan kotor, diskon, refund, dan penjualan
+  bersih per menu. Tidak ada tanggal per transaksi dan tidak ada channel
+  pembayaran — jadi berkas ini tidak bisa mengisi Pemasukan Harian.
+- **Tidak ikut Total penjualan di laporan mana pun.** Penjualan yang sama
+  sudah tercatat lewat Pemasukan Harian; menjumlahkan keduanya membuat satu
+  bulan terhitung dua kali. Karena itu datanya disimpan di tabel sendiri
+  (`moka_item_sales`), tidak di `sales` maupun `daily_incomes`, dan
+  `ItemSalesImportTest` menjaga total penjualan tetap sama sebelum dan sesudah
+  impor. Sesudah impor, hasilnya membandingkan Penjualan bersih Moka dengan
+  Pemasukan Harian periode yang sama sebagai bahan periksa; keduanya tidak harus
+  persis sama (beda sumber), tapi selisih besar patut dicek.
+- **Periodenya ditanyakan.** Berkas Moka tidak memuat tanggal; periodenya hanya
+  ada di nama berkas. Begitu berkas dipilih, kotak Dari/Sampai diisi dari
+  namanya ("Report Item Sales - 01-10-2026 - 31-10-2026 - …", hari dulu) dan
+  tetap bisa diubah. Nama yang tidak terbaca dibiarkan kosong, bukan ditebak.
+
+Pemeriksaannya sengaja ketat, karena periodenya satu-satunya hal yang tidak
+bisa diperiksa dari isi berkas:
+
+- **Net Sales tiap baris harus sama dengan Gross − Discount − Refund**
+  (selisih satu rupiah dimaafkan: Moka menyimpan desimal). Berkas laporan lain
+  atau kolom yang bergeser hampir pasti melanggarnya.
+- Baris **Total** di kaki berkas dilewati kalau kosong (seperti berkas yang kami
+  lihat), dan kalau terisi harus sama dengan jumlah baris menu — menangkap berkas
+  yang terpotong.
+- Jumlah terjual **pecahan** ditolak, bukan dibulatkan diam-diam.
+- **Kunci menu = nama + varian + kategori**, tanpa membedakan huruf besar. Di
+  berkas nyata ada "Ice lemon tea" (Uncategorized) dan "ice lemon tea" (Drink):
+  dua menu Moka yang sah, bukan kembar.
+- Seperti pengimpor lain: **semua atau tidak sama sekali**, dan kesalahan
+  ditampilkan per baris dengan judul kolom persis seperti di berkas Moka.
+
+**Mengimpor periode yang persis sama mengganti isinya**, jadi berkas yang sama
+aman diimpor dua kali. **Periode yang tanggalnya bersinggungan tapi tidak sama
+ditolak** (menu yang sama akan terhitung dua kali); periode yang bersebelahan,
+mis. 1–31 Oktober lalu 1–8 November, boleh. Salah impor dibereskan dengan
+memilih barisnya di halaman itu lalu menghapus, atau mengimpor ulang periode
+yang sama.
+
+Nama menu dan kategori disimpan sebagai teks Moka apa adanya, tidak
+dihubungkan ke menu kasir di sini: ejaannya berbeda ("Chiken shawarma",
+"Pumkin") dan tidak semua menu Moka ada padanannya. Kolom COGS, Gross Profit,
+dan Gross Margin tidak disimpan (COGS di berkas yang kami lihat selalu 0).
+Halamannya hanya dibaca; angka yang diketik tangan tidak lagi sama dengan
+Moka dan tidak ada yang bisa memeriksanya.
+
 ## Penggajian
 
 Menu **Penggajian** (Super Admin saja) meniru aplikasi Slip Gaji di repo
@@ -596,6 +652,8 @@ app/Filament/Admin/Pages/MeetingProgress.php   Progres Rapat
 app/Support/Meetings/               progres, teks & WhatsApp, PDF rapat
 app/Filament/Admin/Pages/Zeytin/    buku besar bulanan + impor Excel
 app/Filament/Admin/Resources/Zeytin/  keenam sheet + dua data induknya
+app/Support/Moka/ItemSalesImport.php  pengimpor Report Item Sales dari Moka
+app/Filament/Admin/Resources/Zeytin/MokaItemSales/  Penjualan per Menu (Moka)
 
 public/css/pos.css                  gaya buatan sendiri, tanpa langkah build
 public/css/auth.css                 gaya halaman masuk
@@ -610,7 +668,7 @@ tests/Feature/                      invarian laporan & neraca
 php artisan test
 ```
 
-**309 tes, 1.475 asersi, semuanya lolos** (diverifikasi 22 September 2026).
+**395 tes, 1.789 asersi, semuanya lolos** (diverifikasi 9 November 2026).
 
 Tes berjalan di **MySQL**, mesin yang sama dengan produksi, bukan SQLite
 dalam memori — yang diuji di sini adalah angka laporan, dan perbedaan cara
