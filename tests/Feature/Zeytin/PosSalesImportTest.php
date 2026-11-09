@@ -6,7 +6,12 @@ use App\Filament\Admin\Resources\Zeytin\DailyIncomes\Pages\ManageDailyIncomes;
 use App\Models\DailyIncome;
 use App\Support\Zeytin\PosSalesImporter;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 /**
@@ -127,6 +132,213 @@ class PosSalesImportTest extends TestCase
 
         $this->assertFalse($report->ok());
         $this->assertStringContainsString('Net Sales', $report->errors[0]);
+    }
+
+    /* ------------------------------------------------- periode dari nama berkas */
+
+    /** Periode seperti dari nama berkas "… - 01-11-2026 - 15-11-2026 - …". */
+    protected function period(string $from, string $to): array
+    {
+        return [Carbon::parse($from), Carbon::parse($to)];
+    }
+
+    /**
+     * Berkas "Report Transaction" seperti dari Moka. Tanggal yang hari-bulannya
+     * bisa dibalik (hari <= 12) disimpan Excel sebagai tanggal asli yang
+     * TERTUKAR — 1 November jadi 11 Januari — dan yang tidak bisa dibalik
+     * tetap teks hari-bulan. Satu berkas memuat keduanya.
+     *
+     * @param  array<int, array{0: string, 1: string, 2: int}>  $receipts  [tanggal sebenarnya, cara bayar, net sales]
+     */
+    protected function transactionXlsx(array $receipts, bool $swapped = true): string
+    {
+        $book = new Spreadsheet;
+        $sheet = $book->getSheet(0);
+        $sheet->fromArray([['Outlet', 'Date', 'Time', 'Gross Sales', 'Discounts', 'Refunds', 'Net Sales', 'Gratuity', 'Tax', 'Total Collected', 'Total Amount', 'Other Note (Optional)', 'Receipt Number', 'Collected By', 'Served By', 'Customer', 'Customer Phone', 'Items', 'Payment Method', 'Event Type', 'Reason of Refund']], null, 'A1');
+
+        foreach ($receipts as $i => [$day, $method, $net]) {
+            $date = Carbon::parse($day);
+
+            $cell = match (true) {
+                ! $swapped => ExcelDate::PHPToExcel($date),
+                $date->day <= 12 => ExcelDate::PHPToExcel(Carbon::create($date->year, $date->day, $date->month)),
+                default => $date->format('d/m/Y'),
+            };
+
+            $sheet->fromArray([['ZEYTIN', $cell, 0.5, $net, 0, 0, $net, 0, 0, $net, $net, null, 'R'.$i, 'Zeytin', null, null, null, 'Item', $method, 'Payment', null]], null, 'A'.($i + 2));
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'tx').'.xlsx';
+        (new Xlsx($book))->save($path);
+        $book->disconnectWorksheets();
+
+        return $path;
+    }
+
+    public function test_tanggal_tertukar_dikembalikan_ke_periode_nama_berkas(): void
+    {
+        $path = $this->transactionXlsx([
+            ['2026-11-01', 'Cash', 100_000],
+            ['2026-11-01', 'BNI', 200_000],
+            ['2026-11-02', 'GrabFood', 50_000],
+            ['2026-11-05', 'BNI', 70_000],
+            ['2026-11-05', 'BNI', 30_000],
+            // Hari > 12 tidak bisa tertukar: tetap teks dan terbaca benar.
+            ['2026-11-13', 'Cash', 999],
+        ]);
+
+        $report = (new PosSalesImporter($this->period('2026-11-01', '2026-11-15')))->import($path);
+
+        $this->assertTrue($report->ok(), implode(' / ', $report->errors));
+        $this->assertSame(4, $report->count('created'));
+        $this->assertSame(
+            ['2026-11-01', '2026-11-02', '2026-11-05', '2026-11-13'],
+            DailyIncome::orderBy('date')->get()->map(fn ($row) => $row->date->toDateString())->all(),
+        );
+        $this->assertSame(0, DailyIncome::whereDate('date', '<', '2026-11-01')->count(), 'penjualan mendarat di Januari–Juli');
+
+        $first = DailyIncome::whereDate('date', '2026-11-01')->first();
+        $this->assertSame(100_000, $first->cash);
+        $this->assertSame(200_000, $first->bni);
+        $this->assertSame(50_000, DailyIncome::whereDate('date', '2026-11-02')->first()->grab_food);
+        $this->assertSame(100_000, DailyIncome::whereDate('date', '2026-11-05')->first()->bni);
+        $this->assertSame(999, DailyIncome::whereDate('date', '2026-11-13')->first()->cash);
+
+        $this->assertStringContainsString('01/11/2026 – 15/11/2026', $report->note);
+        $this->assertStringContainsString(__('excel.pos.swapped_note', ['count' => 5]), $report->note);
+
+        @unlink($path);
+    }
+
+    public function test_tanggal_asli_excel_yang_sudah_benar_tidak_ditukar(): void
+    {
+        $path = $this->transactionXlsx([['2026-11-05', 'Cash', 1_000]], swapped: false);
+
+        $report = (new PosSalesImporter($this->period('2026-11-01', '2026-11-08')))->import($path);
+
+        $this->assertTrue($report->ok(), implode(' / ', $report->errors));
+        $this->assertSame('2026-11-05', DailyIncome::firstOrFail()->date->toDateString());
+        $this->assertStringNotContainsString(__('excel.pos.swapped_note', ['count' => 1]), $report->note);
+
+        @unlink($path);
+    }
+
+    public function test_tanggal_ketikan_teks_dibaca_hari_dulu_dan_tidak_pernah_ditukar(): void
+    {
+        // "05-11-2026" adalah 5 November; tafsiran 11 Mei tidak ikut dipertimbangkan.
+        $report = (new PosSalesImporter($this->period('2026-05-01', '2026-11-30')))->import($this->csv([
+            ['05-11-2026', 'Cash', '1000.0'],
+        ]));
+
+        $this->assertTrue($report->ok(), implode(' / ', $report->errors));
+        $this->assertSame('2026-11-05', DailyIncome::firstOrFail()->date->toDateString());
+    }
+
+    public function test_tanggal_di_luar_periode_menolak_seluruh_berkas(): void
+    {
+        $path = $this->transactionXlsx([
+            ['2026-11-01', 'Cash', 100_000],
+            // 20/10 (teks) dan 5/10 (tertukar jadi 10 Mei): keduanya bukan di 1–8 November.
+            ['2026-10-20', 'Cash', 1],
+            ['2026-10-05', 'Cash', 2],
+        ]);
+
+        $report = (new PosSalesImporter($this->period('2026-11-01', '2026-11-08')))->import($path);
+
+        $this->assertFalse($report->ok());
+        $this->assertCount(2, $report->errors);
+        $this->assertStringContainsString('01/11/2026 – 08/11/2026', $report->errors[0]);
+        $this->assertSame(0, DailyIncome::count());
+
+        @unlink($path);
+    }
+
+    public function test_tanggal_yang_bisa_dibaca_dua_cara_di_dalam_periode_ditolak_bukan_ditebak(): void
+    {
+        // 11 Oktober tersimpan sebagai 10 November; periode Oktober–November memuat kedua tafsiran.
+        $path = $this->transactionXlsx([['2026-10-11', 'Cash', 1_000]]);
+
+        $report = (new PosSalesImporter($this->period('2026-10-01', '2026-11-30')))->import($path);
+
+        $this->assertFalse($report->ok());
+        $this->assertSame(0, DailyIncome::count());
+
+        @unlink($path);
+    }
+
+    public function test_tombol_menerima_xlsx_moka_dan_mengisi_dari_periode_nama_berkas(): void
+    {
+        $path = $this->transactionXlsx([
+            ['2026-11-01', 'Cash', 100_000],
+            ['2026-11-01', 'BNI', 200_000],
+            ['2026-11-02', 'GrabFood', 50_000],
+        ]);
+        $moka = $this->mokaOrdered($path);
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageDailyIncomes::class)
+            ->callAction('posSalesImport', data: [
+                // Nama bawaan Moka; jenis yang dilaporkan dipaksa seperti libmagic di
+                // server (isi zip-nya berurutan ala Moka, jadi octet-stream).
+                'file' => UploadedFile::fake()->createWithContent(
+                    'Report Transaction - 01-11-2026 - 08-11-2026 - All_Outlet - 1086892 - 6af13f4a.xlsx',
+                    file_get_contents($moka),
+                )->mimeType('application/octet-stream'),
+            ])
+            ->assertHasNoActionErrors()
+            ->assertNotified(__('excel.result.done'));
+
+        $this->assertSame(['2026-11-01', '2026-11-02'], DailyIncome::orderBy('date')->get()->map(fn ($row) => $row->date->toDateString())->all());
+        $this->assertSame(0, DailyIncome::whereDate('date', '<', '2026-11-01')->count());
+
+        @unlink($path);
+        @unlink($moka);
+    }
+
+    public function test_tombol_menolak_ekstensi_selain_csv_dan_excel(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(ManageDailyIncomes::class)
+            ->callAction('posSalesImport', data: [
+                'file' => UploadedFile::fake()->createWithContent('laporan.pdf', 'bukan spreadsheet'),
+            ])
+            ->assertHasActionErrors(['file']);
+
+        $this->assertSame(0, DailyIncome::count());
+    }
+
+    public function test_laporan_item_sales_di_tombol_ini_diarahkan_ke_menu_yang_benar(): void
+    {
+        file_put_contents($this->path, "Item Name,Item Variant Name,Category Name,SKU,Item Sold,Item Refunded,Gross Sales,Discount,Refund,Net Sales\nAyran,,Drink,,3,0,135000,0,0,135000\n");
+
+        $report = (new PosSalesImporter)->import($this->path);
+
+        $this->assertFalse($report->ok());
+        $this->assertStringContainsString(__('moka.nav.item_sales'), $report->errors[0]);
+        $this->assertSame(0, DailyIncome::count());
+    }
+
+    /** Salinan xlsx dengan `_rels/.rels` di entri pertama, urutan yang dipakai Moka. */
+    protected function mokaOrdered(string $source): string
+    {
+        $target = tempnam(sys_get_temp_dir(), 'moka').'.xlsx';
+
+        $in = new \ZipArchive;
+        $in->open($source);
+        $out = new \ZipArchive;
+        $out->open($target, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $out->addFromString('_rels/.rels', $in->getFromName('_rels/.rels'));
+
+        for ($i = 0; $i < $in->numFiles; $i++) {
+            if (($name = $in->getNameIndex($i)) !== '_rels/.rels') {
+                $out->addFromString($name, $in->getFromIndex($i));
+            }
+        }
+
+        $in->close();
+        $out->close();
+
+        return $target;
     }
 
     public function test_tombol_ada_di_pemasukan_harian_untuk_admin(): void

@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Support\Excel\ImportReport;
+use App\Support\Moka\ItemSalesImport;
 use App\Support\Zeytin\PosSalesImporter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -25,12 +26,17 @@ class PosSalesAction
             ->schema([
                 FileUpload::make('file')
                     ->label(__('excel.pos.file'))
-                    // Peramban sering memberi CSV tipe berbeda-beda; yang
-                    // dibatasi adalah ekstensinya.
+                    // Peramban sering memberi CSV tipe berbeda-beda, dan xlsx dari
+                    // Moka menaruh `_rels/.rels` di urutan pertama zip-nya
+                    // sehingga server menyebutnya application/octet-stream
+                    // (lihat ManageMokaItemSales). Yang dibatasi adalah
+                    // ekstensinya; isinya diperiksa oleh PosSalesImporter.
                     ->acceptedFileTypes([
                         'text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel',
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/octet-stream',
                     ])
+                    ->rules(['extensions:csv,txt,xlsx,xls'])
                     ->storeFiles(false)
                     ->maxSize(20480)
                     ->required(),
@@ -40,7 +46,11 @@ class PosSalesAction
                 $file = $data['file'];
 
                 try {
-                    $report = (new PosSalesImporter)->import($file->getRealPath());
+                    // Periode dari nama berkas bawaan Moka, kalau terbaca;
+                    // tanpa itu tanggal dipakai apa adanya seperti dulu.
+                    $period = ItemSalesImport::periodFromFilename($file->getClientOriginalName());
+
+                    $report = (new PosSalesImporter($period))->import($file->getRealPath());
                 } catch (Throwable $e) {
                     report($e);
 

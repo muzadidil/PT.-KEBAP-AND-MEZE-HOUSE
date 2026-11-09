@@ -78,7 +78,7 @@ return [
     'pos' => [
         'action' => 'Impor penjualan kasir',
         'heading' => 'Impor penjualan dari laporan kasir',
-        'description' => 'Pakai berkas "Report Item Details" (CSV atau Excel). Net Sales dijumlahkan per tanggal dan cara bayar (Cash, BNI, GrabFood, GoFood, GoPay). Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
+        'description' => 'Pakai berkas "Report Item Details" atau "Report Transaction" dari Moka (CSV atau Excel), apa adanya. Net Sales dijumlahkan per tanggal dan cara bayar (Cash, BNI, GrabFood, GoFood, GoPay). Kalau nama berkasnya memuat periode (mis. "… - 01-11-2026 - 08-11-2026 - …"), tanggal di dalamnya dicocokkan ke periode itu dan yang di luarnya ditolak. Tanggal yang sudah ada barisnya dilewati, tidak pernah ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
         'file' => 'Berkas CSV atau Excel',
         'unreadable' => 'Berkas tidak bisa dibaca. Pakai berkas CSV atau Excel hasil ekspor dari kasir.',
         'missing_column' => 'Kolom ":column" tidak ada. Pakai berkas "Report Item Details" apa adanya.',
@@ -86,6 +86,11 @@ return [
         'bad_amount' => 'Baris :row: Net Sales ":value" bukan angka.',
         'unknown_method' => 'Cara bayar ":method" (baris :rows) tidak dikenal. Yang dikenal: :valid. Ubah namanya di berkas, atau minta ditambahkan.',
         'skipped_note' => 'Dilewati karena sudah terisi: :dates',
+        'out_of_period' => 'Baris :row: tanggal ":value" di luar periode berkas (:period). Pastikan ini berkas untuk periode itu.',
+        'ambiguous_date' => 'Baris :row: tanggal ":value" bisa dibaca dua cara dan keduanya jatuh di periode berkas (:period), jadi tidak bisa dipastikan. Unduh laporan Moka per periode yang lebih pendek, mis. per bulan.',
+        'period_note' => 'Periode dari nama berkas: :period.',
+        'swapped_note' => ':count tanggal yang tertukar bulan dan harinya di berkas dikembalikan ke periode ini.',
+        'wrong_report_item_sales' => 'Ini laporan Report Item Sales (rekap per menu), bukan laporan penjualan per struk. Impor lewat Pembukuan Bulanan → :menu.',
     ],
 
     'telegram' => [

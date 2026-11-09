@@ -52,6 +52,7 @@ return [
 
     'error' => [
         'no_header' => 'Baris judul tidak ditemukan. Kolom yang dicari: :columns. Pakai berkas Report Item Sales dari Moka apa adanya.',
+        'wrong_report' => 'Ini laporan per struk (Report Transaction atau Report Item Details), bukan Report Item Sales. Impor lewat Pembukuan Bulanan → :page → :button.',
         'empty' => 'Berkasnya tidak berisi baris menu.',
         'period_order' => 'Tanggal "Sampai" tidak boleh sebelum tanggal "Dari".',
         'period_future' => 'Periode tidak boleh melewati hari ini.',

@@ -52,6 +52,7 @@ return [
 
     'error' => [
         'no_header' => 'Header row not found. Columns looked for: :columns. Use the Report Item Sales file from Moka as-is.',
+        'wrong_report' => 'This is a per-receipt report (Report Transaction or Report Item Details), not Report Item Sales. Import it under Monthly Bookkeeping → :page → :button.',
         'empty' => 'The file has no item rows.',
         'period_order' => 'The "To" date cannot be before the "From" date.',
         'period_future' => 'The period cannot extend past today.',

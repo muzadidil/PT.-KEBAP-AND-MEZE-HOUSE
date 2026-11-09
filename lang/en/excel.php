@@ -78,7 +78,7 @@ return [
     'pos' => [
         'action' => 'Import POS sales',
         'heading' => 'Import sales from the POS report',
-        'description' => 'Use the "Report Item Details" file (CSV or Excel). Net Sales is added up per date and payment method (Cash, BNI, GrabFood, GoFood, GoPay). Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
+        'description' => 'Use the Moka "Report Item Details" or "Report Transaction" file (CSV or Excel) as exported. Net Sales is added up per date and payment method (Cash, BNI, GrabFood, GoFood, GoPay). When the file name carries a period (e.g. "… - 01-11-2026 - 08-11-2026 - …"), the dates inside are matched to that period and any outside it are rejected. Dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
         'file' => 'CSV or Excel file',
         'unreadable' => 'The file could not be read. Use the CSV or Excel file exported from the POS.',
         'missing_column' => 'Column ":column" is missing. Use the "Report Item Details" file as exported.',
@@ -86,6 +86,11 @@ return [
         'bad_amount' => 'Row :row: Net Sales ":value" is not a number.',
         'unknown_method' => 'Payment method ":method" (rows :rows) is not recognised. Known: :valid. Rename it in the file, or ask for it to be added.',
         'skipped_note' => 'Skipped, already filled: :dates',
+        'out_of_period' => 'Row :row: date ":value" is outside the file period (:period). Make sure this is the file for that period.',
+        'ambiguous_date' => 'Row :row: date ":value" can be read two ways and both fall inside the file period (:period), so it cannot be settled. Download the Moka report for a shorter period, e.g. one month.',
+        'period_note' => 'Period from the file name: :period.',
+        'swapped_note' => ':count dates that had month and day swapped in the file were put back into this period.',
+        'wrong_report_item_sales' => 'This is the Report Item Sales file (per-item summary), not a per-receipt sales report. Import it under Monthly Bookkeeping → :menu.',
     ],
 
     'telegram' => [

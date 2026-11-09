@@ -102,6 +102,16 @@ class ItemSalesImport
         $located = $this->locate($grid);
 
         if (! $located) {
+            // Laporan Moka yang lain (per struk) mudah tertukar dengan yang ini
+            // dan tidak punya kolom Item Name: katakan di mana tempatnya, bukan
+            // sekadar "judul tidak ditemukan".
+            if ($this->isReceiptReport($grid)) {
+                return ImportReport::failed([__('moka.error.wrong_report', [
+                    'page' => __('zeytin.nav.daily_income'),
+                    'button' => __('excel.pos.action'),
+                ])]);
+            }
+
             return ImportReport::failed([__('moka.error.no_header', ['columns' => $this->requiredTitles()])]);
         }
 
@@ -178,6 +188,25 @@ class ItemSalesImport
             fn (Column $column) => static::headerTitle($column),
             array_filter(static::columns(), fn (Column $column) => $column->required),
         ));
+    }
+
+    /**
+     * Laporan per struk (Report Transaction atau Report Item Details):
+     * punya Receipt Number dan Payment Method, yang tidak ada di rekap menu.
+     *
+     * @param  array<int, array<int, mixed>>  $grid
+     */
+    protected function isReceiptReport(array $grid): bool
+    {
+        foreach (array_slice($grid, 0, self::HEADER_SCAN) as $cells) {
+            $titles = array_map([Column::class, 'norm'], $cells);
+
+            if (in_array('receipt number', $titles, true) && in_array('payment method', $titles, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
