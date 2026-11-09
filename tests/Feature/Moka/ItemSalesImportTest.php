@@ -431,6 +431,84 @@ class ItemSalesImportTest extends TestCase
         $this->assertSame(4, MokaItemSale::count());
     }
 
+    /**
+     * Berkas xlsx asli dari Moka menaruh `_rels/.rels` di urutan pertama zip,
+     * sehingga libmagic menyebutnya application/octet-stream. Berkas buatan
+     * PhpSpreadsheet terdeteksi normal, jadi tes lain tidak menangkap ini:
+     * di produksi unggahan ditolak "must be a file of type …". Berkasnya
+     * disusun ulang seperti Moka supaya kasus itu benar-benar diuji.
+     */
+    public function test_berkas_xlsx_ala_moka_yang_terdeteksi_octet_stream_diterima(): void
+    {
+        $this->workbook($this->october());
+        $moka = $this->mokaOrdered($this->path);
+
+        if ((new \finfo(FILEINFO_MIME_TYPE))->file($moka) !== 'application/octet-stream') {
+            $this->markTestSkipped('Pendeteksi jenis berkas di mesin ini tidak mengulang kasus Moka.');
+        }
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageMokaItemSales::class)
+            ->callAction('mokaImport', data: [
+                // Berkas palsu melaporkan jenisnya dari ekstensi nama; di server
+                // yang melaporkan libmagic dari isinya. Dipaksa sama seperti di sana.
+                'file' => UploadedFile::fake()->createWithContent(
+                    'Report Item Sales - 01-10-2026 - 31-10-2026 - ZEYTIN.xlsx',
+                    file_get_contents($moka),
+                )->mimeType('application/octet-stream'),
+                'from' => '2026-10-01',
+                'until' => '2026-10-31',
+            ])
+            ->assertHasNoActionErrors()
+            ->assertNotified(__('excel.result.done'));
+
+        $this->assertSame(4, MokaItemSale::count());
+
+        @unlink($moka);
+    }
+
+    public function test_berkas_dengan_ekstensi_lain_tetap_ditolak(): void
+    {
+        $this->workbook($this->october());
+
+        Livewire::actingAs($this->admin())
+            ->test(ManageMokaItemSales::class)
+            ->callAction('mokaImport', data: [
+                'file' => UploadedFile::fake()->createWithContent('laporan.pdf', file_get_contents($this->path)),
+                'from' => '2026-10-01',
+                'until' => '2026-10-31',
+            ])
+            ->assertHasActionErrors(['file']);
+
+        $this->assertSame(0, MokaItemSale::count());
+    }
+
+    /** Salinan xlsx dengan `_rels/.rels` di entri pertama, urutan yang dipakai Moka. */
+    protected function mokaOrdered(string $source): string
+    {
+        $target = tempnam(sys_get_temp_dir(), 'moka').'.xlsx';
+
+        $in = new \ZipArchive;
+        $in->open($source);
+        $out = new \ZipArchive;
+        $out->open($target, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        $out->addFromString('_rels/.rels', $in->getFromName('_rels/.rels'));
+
+        for ($i = 0; $i < $in->numFiles; $i++) {
+            $name = $in->getNameIndex($i);
+
+            if ($name !== '_rels/.rels') {
+                $out->addFromString($name, $in->getFromIndex($i));
+            }
+        }
+
+        $in->close();
+        $out->close();
+
+        return $target;
+    }
+
     public function test_berkas_yang_salah_dari_halaman_tidak_menyimpan_apa_pun(): void
     {
         $items = $this->october();
