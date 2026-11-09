@@ -49,10 +49,18 @@ class ManageMokaItemSales extends ManageRecords
             ->schema([
                 FileUpload::make('file')
                     ->label(__('moka.import.file'))
+                    // Berkas xlsx dari Moka menaruh entri `_rels/.rels` di urutan
+                    // pertama zip-nya, sehingga pendeteksi jenis berkas server
+                    // (libmagic) menyebutnya application/octet-stream dan aturan
+                    // jenis-berkas menolaknya. Ekstensinya yang dijaga di sini;
+                    // isinya diperiksa ketat oleh ItemSalesImport, dan berkas
+                    // yang bukan spreadsheet ditolak di sana dengan pesan jelas.
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/vnd.ms-excel',
+                        'application/octet-stream',
                     ])
+                    ->rules(['extensions:xlsx,xls'])
                     // Tidak disimpan di server: yang dibaca berkas sementara
                     // milik unggahan, yang dibuang sendiri sesudahnya.
                     ->storeFiles(false)
