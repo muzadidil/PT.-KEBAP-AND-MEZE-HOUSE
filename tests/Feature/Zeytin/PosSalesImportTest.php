@@ -307,17 +307,6 @@ class PosSalesImportTest extends TestCase
         $this->assertSame(0, DailyIncome::count());
     }
 
-    public function test_laporan_item_sales_di_tombol_ini_diarahkan_ke_menu_yang_benar(): void
-    {
-        file_put_contents($this->path, "Item Name,Item Variant Name,Category Name,SKU,Item Sold,Item Refunded,Gross Sales,Discount,Refund,Net Sales\nAyran,,Drink,,3,0,135000,0,0,135000\n");
-
-        $report = (new PosSalesImporter)->import($this->path);
-
-        $this->assertFalse($report->ok());
-        $this->assertStringContainsString(__('moka.nav.item_sales'), $report->errors[0]);
-        $this->assertSame(0, DailyIncome::count());
-    }
-
     /** Salinan xlsx dengan `_rels/.rels` di entri pertama, urutan yang dipakai Moka. */
     protected function mokaOrdered(string $source): string
     {

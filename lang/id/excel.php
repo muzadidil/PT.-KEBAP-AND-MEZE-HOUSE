@@ -90,7 +90,6 @@ return [
         'ambiguous_date' => 'Baris :row: tanggal ":value" bisa dibaca dua cara dan keduanya jatuh di periode berkas (:period), jadi tidak bisa dipastikan. Unduh laporan Moka per periode yang lebih pendek, mis. per bulan.',
         'period_note' => 'Periode dari nama berkas: :period.',
         'swapped_note' => ':count tanggal yang tertukar bulan dan harinya di berkas dikembalikan ke periode ini.',
-        'wrong_report_item_sales' => 'Ini laporan Report Item Sales (rekap per menu), bukan laporan penjualan per struk. Impor lewat Pembukuan Bulanan → :menu.',
     ],
 
     'telegram' => [

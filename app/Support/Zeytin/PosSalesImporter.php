@@ -58,12 +58,6 @@ class PosSalesImporter
             $index = array_search($needed, $header, true);
 
             if ($index === false) {
-                // Laporan Moka yang lain (rekap per menu) tidak punya Date dan
-                // Payment Method; kalau dikenali, katakan di mana tempatnya.
-                if (in_array('itemsold', $header, true)) {
-                    return ImportReport::failed([__('excel.pos.wrong_report_item_sales', ['menu' => __('moka.nav.item_sales')])]);
-                }
-
                 return ImportReport::failed([__('excel.pos.missing_column', ['column' => match ($needed) {
                     'date' => 'Date',
                     'paymentmethod' => 'Payment Method',

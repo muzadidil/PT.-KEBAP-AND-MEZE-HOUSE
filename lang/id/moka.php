@@ -17,18 +17,18 @@ return [
     'page' => [
         'subheading' => 'Rekap per menu dari laporan Report Item Sales Moka. Terpisah dari Pemasukan Harian: angka di sini tidak ikut Total penjualan di laporan mana pun, jadi tidak terhitung dua kali.',
         'empty_heading' => 'Belum ada laporan Moka',
-        'empty_description' => 'Unduh Report Item Sales dari Moka, lalu unggah lewat tombol Impor laporan Moka.',
+        'empty_description' => 'Unduh Report Item Sales dari Moka, lalu unggah lewat tombol Impor dari Moka.',
     ],
 
     'action' => [
-        'import' => 'Impor laporan Moka',
+        'import' => 'Impor dari Moka',
     ],
 
     'import' => [
-        'heading' => 'Impor Report Item Sales dari Moka',
-        'description' => 'Unggah berkas .xlsx hasil unduhan Moka apa adanya. Isinya rekap per menu untuk satu periode, bukan transaksi per struk. Mengimpor periode yang sama lagi mengganti isinya, bukan menambah.',
-        'file' => 'Berkas Report Item Sales',
-        'period_hint' => 'Berkas Moka tidak memuat tanggal. Periode diisi dari nama berkas bila terbaca; periksa dulu sebelum mengimpor.',
+        'heading' => 'Impor laporan dari Moka',
+        'description' => 'Unggah berkas hasil unduhan Moka apa adanya (Excel atau CSV); jenis laporannya dikenali otomatis. Report Item Sales (rekap per menu) masuk ke Penjualan per Menu. Report Transaction dan Report Item Details (per struk) masuk ke Pemasukan Harian: Net Sales dijumlahkan per tanggal dan cara bayar, dan tanggal yang sudah terisi dilewati, tidak ditimpa. Kalau ada yang salah, tidak ada yang disimpan.',
+        'file' => 'Berkas laporan Moka',
+        'period_hint' => 'Berkas Moka tidak memuat periodenya. Kotak ini diisi otomatis dari nama berkas bila terbaca; isi sendiri kalau namanya tidak memuat tanggal, dan periksa dulu sebelum mengimpor.',
     ],
 
     'filter' => [
@@ -52,7 +52,8 @@ return [
 
     'error' => [
         'no_header' => 'Baris judul tidak ditemukan. Kolom yang dicari: :columns. Pakai berkas Report Item Sales dari Moka apa adanya.',
-        'wrong_report' => 'Ini laporan per struk (Report Transaction atau Report Item Details), bukan Report Item Sales. Impor lewat Pembukuan Bulanan → :page → :button.',
+        'unknown_report' => 'Berkas ini tidak dikenali sebagai laporan Moka. Yang bisa diimpor: Report Item Sales (rekap per menu), serta Report Transaction dan Report Item Details (per struk). Pakai berkas hasil unduhan Moka apa adanya.',
+        'period_missing' => 'Periode laporan belum diketahui: nama berkasnya tidak memuat tanggal. Isi kotak Dari dan Sampai.',
         'empty' => 'Berkasnya tidak berisi baris menu.',
         'period_order' => 'Tanggal "Sampai" tidak boleh sebelum tanggal "Dari".',
         'period_future' => 'Periode tidak boleh melewati hari ini.',

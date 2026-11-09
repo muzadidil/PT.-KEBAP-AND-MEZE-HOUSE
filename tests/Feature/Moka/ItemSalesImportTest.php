@@ -325,23 +325,6 @@ class ItemSalesImportTest extends TestCase
         $this->assertSame(0, MokaItemSale::count());
     }
 
-    /**
-     * Report Transaction mudah tertukar dengan Report Item Sales. Pesannya
-     * harus menunjuk ke tempat yang benar, bukan sekadar "judul tidak ditemukan".
-     */
-    public function test_laporan_per_struk_diarahkan_ke_pemasukan_harian(): void
-    {
-        $report = $this->import(
-            [['ZEYTIN', 46214, 'R1', 675000, 'BNI']],
-            header: ['Outlet', 'Date', 'Receipt Number', 'Net Sales', 'Payment Method'],
-        );
-
-        $this->assertFalse($report->ok());
-        $this->assertStringContainsString(__('excel.pos.action'), $report->errors[0]);
-        $this->assertStringContainsString(__('zeytin.nav.daily_income'), $report->errors[0]);
-        $this->assertSame(0, MokaItemSale::count());
-    }
-
     public function test_berkas_tanpa_baris_menu_ditolak(): void
     {
         $report = $this->import([]);

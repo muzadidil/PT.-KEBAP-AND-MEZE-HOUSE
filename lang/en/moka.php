@@ -17,18 +17,18 @@ return [
     'page' => [
         'subheading' => 'Per-item summary from the Moka Report Item Sales. Kept apart from Daily Income: these figures are not part of Total sales in any report, so nothing is counted twice.',
         'empty_heading' => 'No Moka report yet',
-        'empty_description' => 'Download Report Item Sales from Moka, then upload it with the Import Moka report button.',
+        'empty_description' => 'Download Report Item Sales from Moka, then upload it with the Import from Moka button.',
     ],
 
     'action' => [
-        'import' => 'Import Moka report',
+        'import' => 'Import from Moka',
     ],
 
     'import' => [
-        'heading' => 'Import Report Item Sales from Moka',
-        'description' => 'Upload the .xlsx file downloaded from Moka as-is. It is a per-item summary for one period, not a list of receipts. Importing the same period again replaces it instead of adding to it.',
-        'file' => 'Report Item Sales file',
-        'period_hint' => 'A Moka file carries no dates. The period is filled in from the file name when it can be read; check it before importing.',
+        'heading' => 'Import a report from Moka',
+        'description' => 'Upload the file downloaded from Moka as-is (Excel or CSV); the report type is recognised automatically. Report Item Sales (per-item summary) goes to Item Sales. Report Transaction and Report Item Details (per receipt) go to Daily Income: Net Sales is added up per date and payment method, and dates that already have a row are skipped, never overwritten. If anything is wrong, nothing is saved.',
+        'file' => 'Moka report file',
+        'period_hint' => 'A Moka file does not carry its period. These boxes are filled in from the file name when it can be read; fill them in yourself if the name has no dates, and check them before importing.',
     ],
 
     'filter' => [
@@ -52,7 +52,8 @@ return [
 
     'error' => [
         'no_header' => 'Header row not found. Columns looked for: :columns. Use the Report Item Sales file from Moka as-is.',
-        'wrong_report' => 'This is a per-receipt report (Report Transaction or Report Item Details), not Report Item Sales. Import it under Monthly Bookkeeping → :page → :button.',
+        'unknown_report' => 'This file is not recognised as a Moka report. Supported: Report Item Sales (per-item summary), and Report Transaction and Report Item Details (per receipt). Use the file downloaded from Moka as-is.',
+        'period_missing' => 'The report period is not known: the file name carries no dates. Fill in the From and To boxes.',
         'empty' => 'The file has no item rows.',
         'period_order' => 'The "To" date cannot be before the "From" date.',
         'period_future' => 'The period cannot extend past today.',

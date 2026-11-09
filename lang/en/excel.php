@@ -90,7 +90,6 @@ return [
         'ambiguous_date' => 'Row :row: date ":value" can be read two ways and both fall inside the file period (:period), so it cannot be settled. Download the Moka report for a shorter period, e.g. one month.',
         'period_note' => 'Period from the file name: :period.',
         'swapped_note' => ':count dates that had month and day swapped in the file were put back into this period.',
-        'wrong_report_item_sales' => 'This is the Report Item Sales file (per-item summary), not a per-receipt sales report. Import it under Monthly Bookkeeping → :menu.',
     ],
 
     'telegram' => [
